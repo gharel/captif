@@ -1,6 +1,7 @@
 import { createUmlNode, readUmlNode, updateUmlNode, isUmlNode } from './uml-nodes.js';
 import { createUmlRelation, readUmlRelation, updateUmlRelation, isUmlRelation } from './uml-relations.js';
 import { escape as esc } from './render.js';
+import { diagramPreview } from './diagram-preview.js';
 
 export const NODE_LABELS = {
   class: ['Classe', 'Attributs et opérations'], 'abstract-class': ['Classe abstraite', 'Nom en italique'], interface: ['Interface', 'Contrat «interface»'],
@@ -22,7 +23,6 @@ export const UML_DIAGRAMS = {
   usecases: { label: "Cas d’utilisation", description: 'Acteurs, objectifs et périmètre du système.', nodes: ['actor','usecase','system','note'], relations: ['association','include','extend','generalization'] },
   sequence: { label: 'Diagramme de séquence', description: 'Participants et échanges dans l’ordre du temps.', nodes: ['participant','activation','fragment','destruction','note'], relations: ['message-sync','message-async','message-return','message-self'] },
 };
-const glyphs = { class:'▤', 'abstract-class':'A', interface:'I', object:':', actor:'♙', usecase:'◯', system:'▣', participant:'┬', activation:'▯', fragment:'alt', destruction:'×', note:'≡' };
 export function umlPaletteMarkup() {
   return `<div class="library-tabs" role="tablist" aria-label="Bibliothèque de composants"><button id="library-uml" role="tab" aria-selected="true" aria-controls="uml-palette">UML</button><button id="library-bdd" role="tab" aria-selected="false" aria-controls="bdd-palette">BDD</button></div>
   <section id="uml-palette" role="tabpanel" aria-labelledby="library-uml"><label class="field-label" for="uml-diagram">Type de diagramme</label><select id="uml-diagram">${Object.entries(UML_DIAGRAMS).map(([key,d])=>`<option value="${key}">${d.label}</option>`).join('')}</select><p id="uml-diagram-hint" class="palette-note"></p><div class="sidebar-heading"><span>ÉLÉMENTS</span><span class="tag" id="uml-element-count"></span></div><div id="uml-node-buttons" class="uml-node-grid"></div><details class="uml-relations" open><summary>Relations et messages <span id="uml-relation-count"></span></summary><div id="uml-relation-buttons"></div></details></section>`;
@@ -54,7 +54,7 @@ export function mountUmlUi({ getPage, isLocked, onSave, onCreate, beforeOpen = (
     $('uml-diagram-hint').textContent = diagram.description;
     $('uml-element-count').textContent = diagram.nodes.length;
     $('uml-relation-count').textContent = diagram.relations.length;
-    $('uml-node-buttons').innerHTML = diagram.nodes.map(kind=>`<button type="button" class="uml-node-button" data-uml-node="${kind}"><span class="uml-node-icon">${glyphs[kind]}</span><strong>${NODE_LABELS[kind][0]}</strong><small>${NODE_LABELS[kind][1]}</small></button>`).join('');
+    $('uml-node-buttons').innerHTML = diagram.nodes.map(kind=>`<button type="button" class="uml-node-button" data-uml-node="${kind}">${diagramPreview(kind)}<strong>${NODE_LABELS[kind][0]}</strong><small>${NODE_LABELS[kind][1]}</small></button>`).join('');
     $('uml-relation-buttons').innerHTML = diagram.relations.map(kind=>`<button type="button" class="uml-relation-button" data-uml-relation="${kind}"><span class="uml-relation-preview" data-kind="${kind}" aria-hidden="true">${relationPreview(kind)}</span><span><strong>${RELATION_LABELS[kind][0]}</strong><small>${RELATION_LABELS[kind][1]}</small></span><span>＋</span></button>`).join('');
     syncLocked();
   }

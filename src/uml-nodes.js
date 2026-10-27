@@ -2,7 +2,7 @@ import { W, H } from './geometry.js';
 
 export const UML_NODE_KINDS = ['class', 'abstract-class', 'interface', 'object', 'actor', 'usecase', 'system', 'participant', 'activation', 'fragment', 'destruction', 'note'];
 const uid = () => crypto.randomUUID();
-const color = '#334155';
+const color = '#303540';
 const defaults = { class: 'Classe', 'abstract-class': 'ClasseAbstraite', interface: 'Interface', object: 'instance', actor: 'Acteur', usecase: "Cas d’utilisation", system: 'Système', participant: 'Participant', activation: '', fragment: 'Fragment', destruction: '', note: 'Note' };
 const string = (value, fallback = '', limit = 50) => {
   const result = String(value ?? fallback).trim();
@@ -19,7 +19,7 @@ const dimension = (value, fallback, min, max) => {
   if (!Number.isFinite(result) || result < min || result > max) throw new Error(`Dimension attendue entre ${min} et ${max}.`);
   return result;
 };
-const primitive = (type, values) => ({ id: uid(), type, stroke: color, strokeWidth: 1.5, ...values });
+const primitive = (type, values) => ({ id: uid(), type, stroke: color, strokeWidth: 1, ...values });
 const rect = (x, y, width, height, fill = '#ffffff', extra = {}) => primitive('rect', { role: 'uml-frame', x, y, width, height, fill, ...extra });
 const line = (x, y, x2, y2, extra = {}) => primitive('line', { role: 'uml-decoration', x, y, x2, y2, ...extra });
 const text = (role, x, y, value, fontSize = 14, extra = {}) => primitive('text', { role, x, y, text: value, fontSize, ...extra });
@@ -45,13 +45,13 @@ export function createUmlNode(kind, options = {}) {
   const title = kind === 'object' ? className?`${name} : ${className}`:name : name;
   let headerHeight, attrHeight, opHeight, nodeHeight;
   if (classLike || kind === 'object') {
-    width = Math.max(280, textWidth(title, 18) + 32, textWidth(displayedStereotype, 12) + 32, ...attributes.map(a => textWidth(a, 14) + 32), ...operations.map(a => textWidth(a, 14) + 32));
-    headerHeight = displayedStereotype ? 64 : 44;
-    attrHeight = Math.max(40, attributes.length * 21 + 20);
-    opHeight = kind === 'object' ? 0 : Math.max(40, operations.length * 21 + 20);
+    width = Math.max(240, textWidth(title, 15) + 32, textWidth(displayedStereotype, 11) + 32, ...attributes.map(a => textWidth(a, 13) + 32), ...operations.map(a => textWidth(a, 13) + 32));
+    headerHeight = displayedStereotype ? 54 : 36;
+    attrHeight = Math.max(36, attributes.length * 19.5 + 20);
+    opHeight = kind === 'object' ? 0 : Math.max(36, operations.length * 19.5 + 20);
     height = headerHeight + attrHeight + opHeight;
   } else if (kind === 'actor') { width = Math.max(120, textWidth(name, 14) + 20); height = 148; }
-  else if (kind === 'usecase') { width = Math.max(260, textWidth(name, 16) + 64); height = 110; }
+  else if (kind === 'usecase') { width = Math.max(190, textWidth(name, 15) + 52); height = 82; }
   else if (kind === 'system') { width = Math.max(dimension(options.width, 520, 380, 746), textWidth(name, 16) + 32); height = dimension(options.height, 360, 120, 1063); }
   else if (kind === 'participant') { width = Math.max(170, textWidth(name, 16) + 30); height = dimension(options.height, 460, 120, 1063); }
   else if (kind === 'activation') { width = name?Math.max(110, textWidth(name, 12) + 12):20; nodeHeight = dimension(options.height, 110, 40, 1000); height = nodeHeight + (name?34:0); }
@@ -65,17 +65,17 @@ export function createUmlNode(kind, options = {}) {
   const y = Math.max(36, Math.min(H - 24 - height, requestedY));
   const children = [];
   if (classLike || kind === 'object') {
-    children.push(rect(x, y, width, height), rect(x, y, width, headerHeight, '#eef0ff', { role: 'uml-decoration' }));
-    if (displayedStereotype) children.push(text('uml-stereotype', x + (width - textWidth(displayedStereotype, 12)) / 2, y + 20, displayedStereotype, 12));
-    children.push(text('uml-name', x + (width - textWidth(title, 18)) / 2, y + (displayedStereotype ? 47 : 28), title, 18, { ...(kind === 'abstract-class' ? { italic: true } : {}), ...(kind === 'object' ? { underline: true } : {}) }));
+    children.push(rect(x, y, width, height), rect(x, y, width, headerHeight, kind === 'object' ? '#f0eaff' : '#e8efff', { role: 'uml-decoration' }));
+    if (displayedStereotype) children.push(text('uml-stereotype', x + (width - textWidth(displayedStereotype, 11)) / 2, y + 18, displayedStereotype, 11, { stroke: '#64748b' }));
+    children.push(text('uml-name', x + (width - textWidth(title, 15)) / 2, y + (displayedStereotype ? 40 : 24), title, 15, { bold: true, ...(kind === 'abstract-class' ? { italic: true } : {}), ...(kind === 'object' ? { underline: true } : {}) }));
     children.push(line(x, y + headerHeight, x + width, y + headerHeight));
-    children.push(text('uml-attributes', x + 15, y + headerHeight + 26, attributes.join('\n'), 14));
-    if (kind !== 'object') { children.push(line(x, y + headerHeight + attrHeight, x + width, y + headerHeight + attrHeight)); children.push(text('uml-operations', x + 15, y + headerHeight + attrHeight + 26, operations.join('\n'), 14)); }
+    children.push(text('uml-attributes', x + 14, y + headerHeight + 23, attributes.join('\n'), 13));
+    if (kind !== 'object') { children.push(line(x, y + headerHeight + attrHeight, x + width, y + headerHeight + attrHeight)); children.push(text('uml-operations', x + 14, y + headerHeight + attrHeight + 23, operations.join('\n'), 13)); }
   } else if (kind === 'actor') {
     const center = x + width / 2;
     children.push(primitive('ellipse', { role: 'uml-decoration', x: center - 13, y: y + 5, width: 26, height: 26, fill: '#ffffff' }), line(center, y + 31, center, y + 83), line(center - 29, y + 49, center + 29, y + 49), line(center, y + 83, center - 25, y + 112), line(center, y + 83, center + 25, y + 112), text('uml-name', x + (width - textWidth(name, 14)) / 2, y + 135, name, 14));
   } else if (kind === 'usecase') {
-    children.push(primitive('ellipse', { role: 'uml-frame', x, y, width, height, fill: '#f8f9ff' }), text('uml-name', x + (width - textWidth(name, 16)) / 2, y + height / 2 + 5, name, 16));
+    children.push(primitive('ellipse', { role: 'uml-frame', x, y, width, height, fill: '#ede5ff' }), text('uml-name', x + (width - textWidth(name, 15)) / 2, y + height / 2 + 5, name, 15));
   } else if (kind === 'system') {
     children.push(rect(x, y, width, height, 'none'), text('uml-name', x + 14, y + 27, name, 16));
   } else if (kind === 'participant') {
@@ -93,7 +93,7 @@ export function createUmlNode(kind, options = {}) {
   } else {
     children.push(rect(x, y, width, height, '#fff9dc'), line(x + width - 22, y, x + width - 22, y + 22), line(x + width - 22, y + 22, x + width, y + 22), text('uml-name', x + 14, y + 28, name, 16), text('uml-attributes', x + 14, y + 57, attributes.join('\n'), 14));
   }
-  return { id: uid(), type: 'group', label: 'Élément UML', umlKind: kind, x, y, width, height, stroke: color, strokeWidth: 1.5, children };
+  return { id: uid(), type: 'group', label: 'Élément UML', umlKind: kind, x, y, width, height, stroke: color, strokeWidth: 1, children };
 }
 
 function legacy(group) {

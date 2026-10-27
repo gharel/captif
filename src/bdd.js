@@ -2,7 +2,7 @@ import { W, H, elementBounds } from './geometry.js';
 
 export const CARDINALITIES = ['0,1', '1,1', '0,N', '1,N'];
 const uid = () => crypto.randomUUID();
-const stroke = '#334155';
+const stroke = '#303540';
 const textValue = (value, fallback = '', limit = 80) => {
   const result = String(value ?? fallback).trim();
   if (result.length > limit || result.includes('\n')) throw new Error(`Texte limité à ${limit} caractères sur une ligne.`);
@@ -34,31 +34,25 @@ export function createEntity({ x = 70, y = 100, name = 'ENTITÉ', attributes = [
 ] } = {}) {
   name = textValue(name, 'ENTITÉ', 40);
   attributes = attributesValue(attributes);
-  const nameWidth = Math.max(123, ...attributes.map(a => a.name.length * 12 * .62 + 9));
-  const typeWidth = Math.max(92, ...attributes.map(a => a.type.length * 12 * .62 + 9));
-  const width = Math.max(330, 55 + nameWidth + typeWidth + 49, name.length * 18 * .62 + 32);
-  const height = 78 + Math.max(1, attributes.length) * 32;
+  const nameWidth = Math.max(80, ...attributes.map(a => a.name.length * 12 * .62 + 12));
+  const typeWidth = Math.max(90, ...attributes.map(a => a.type.length * 12 * .62 + 12));
+  const width = Math.max(260, 40 + nameWidth + typeWidth + 34, name.length * 15 * .62 + 32);
+  const height = 46 + Math.max(1, attributes.length) * 26;
   ({ x, y } = position(x, y, width, height));
-  const typeX = x + 55 + nameWidth, nullableX = x + width - 39;
+  const typeX = x + 40 + nameWidth, nullableX = x + width - 26;
   const children = [
-    rect('frame', x, y, width, height), rect('header', x, y, width, 40, '#eef0ff'),
-    line('separator', x, y + 40, x + width, y + 40),
-    text('entity-name', x + 14, y + 27, name, 18),
-    text('column-label', x + 12, y + 59, 'CLÉ', 12, { stroke: '#64748b' }),
-    text('column-label', x + 55, y + 59, 'ATTRIBUT', 12, { stroke: '#64748b' }),
-    text('column-label', typeX, y + 59, 'TYPE', 12, { stroke: '#64748b' }),
-    text('column-label', nullableX - 3, y + 59, 'NULL', 12, { stroke: '#64748b' }),
-    line('separator', x, y + 68, x + width, y + 68),
+    rect('frame', x, y, width, height), rect('header', x, y, width, 34, '#fff6d5'),
+    line('separator', x, y + 34, x + width, y + 34),
+    text('entity-name', x + (width - name.length * 15 * .62) / 2, y + 23, name, 15, { bold: true }),
   ];
   attributes.forEach((attribute, index) => {
-    const rowId = uid(), baseline = y + 90 + index * 32;
-    children.push(text('attribute-key', x + 12, baseline, attribute.key, 12, { rowId, stroke: '#635bff' }),
-      text('attribute-name', x + 55, baseline, attribute.name, 12, { rowId }),
-      text('attribute-type', typeX, baseline, attribute.type, 12, { rowId, stroke: '#64748b' }),
-      text('attribute-nullable', nullableX, baseline, attribute.nullable ? 'NULL' : 'NN', 12, { rowId, stroke: '#64748b' }));
-    if (index < attributes.length - 1) children.push(line('separator', x + 10, baseline + 12, x + width - 10, baseline + 12));
+    const rowId = uid(), baseline = y + 55 + index * 26;
+    children.push(text('attribute-key', x + 10, baseline, attribute.key, 9, { rowId, stroke: '#9b7622', bold: true }),
+      text('attribute-name', x + 40, baseline, attribute.name, 12, { rowId }),
+      text('attribute-type', typeX, baseline, attribute.type, 12, { rowId, stroke: '#8b909b' }),
+      text('attribute-nullable', nullableX, baseline, attribute.nullable ? 'NULL' : 'NN', 8, { rowId, stroke: '#9ca3af' }));
   });
-  if (!attributes.length) children.push(text('empty-label', x + 14, y + 90, 'Aucun attribut', 12, { stroke: '#64748b' }));
+  if (!attributes.length) children.push(text('empty-label', x + 14, y + 55, 'Aucun attribut', 12, { stroke: '#9ca3af' }));
   return { id: uid(), type: 'group', label: 'Entité BDD', x, y, width, height, stroke, strokeWidth: 1, children };
 }
 
@@ -105,11 +99,11 @@ export function createAssociation({ x = 280, y = 330, name = 'ASSOCIATION', attr
   const nameWidth = Math.max(60, ...attributes.map(a => a.name.length * 12 * .62));
   const typeWidth = Math.max(60, ...attributes.map(a => a.type.length * 12 * .62));
   const contentWidth = keyWidth + nameWidth + typeWidth + 70;
-  const width = Math.max(280, name.length * 16 * .62 * 1.5 + 48, contentWidth * 1.35 + 64);
-  const height = Math.max(130, 100 + attributes.length * 42);
+  const width = Math.max(210, name.length * 16 * .62 * 1.4 + 40, attributes.length ? contentWidth * 1.35 + 48 : 0);
+  const height = attributes.length ? Math.max(120, 85 + attributes.length * 36) : 82;
   ({ x, y } = position(x, y, width, height));
   const bodyX = x + (width - contentWidth) / 2;
-  const children = [primitive('ellipse', { role: 'frame', x, y, width, height, fill: '#f8fafc' }), text('association-name', x + (width - name.length * 16 * .62) / 2, y + height * .2 + 8, name, 16)];
+  const children = [primitive('ellipse', { role: 'frame', x, y, width, height, fill: '#fff6d5' }), text('association-name', x + (width - name.length * 16 * .62) / 2, y + (attributes.length ? height * .2 + 8 : height / 2 + 5), name, 16, { bold: true })];
   attributes.forEach((a, index) => {
     const rowId = uid(), baseline = y + height * .34 + 16 + index * 26;
     children.push(text('attribute-name', bodyX + keyWidth + 10, baseline, a.name, 12, { rowId }), text('attribute-type', bodyX + keyWidth + nameWidth + 20, baseline, a.type, 12, { rowId }), text('attribute-key', bodyX, baseline, a.key, 12, { rowId }), text('attribute-nullable', bodyX + contentWidth - 32, baseline, a.nullable ? 'NULL' : 'NN', 12, { rowId }));

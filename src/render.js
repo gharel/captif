@@ -24,9 +24,26 @@ export function elementSvg(e, selected = false,editHints=false) {
   const style = `stroke="${color}" stroke-width="${e.strokeWidth || 2}" fill="${fill}" stroke-linecap="round" stroke-linejoin="round"${dash}`;
   let inner = '';
   if (e.type === 'group') {
-    inner = `${['Relation BDD','Relation UML'].includes(e.label) ? '' : `<rect class="group-hit" x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" fill="transparent" stroke="none"/>`}${e.children.map(child => elementSvg(child,false,editHints)).join('')}`;
+    const themedChildren=e.children.map(child=>{
+      const next={...child};
+      if(child.role==='header')next.fill='#fff6d5';
+      if(child.type==='rect'&&child.role==='uml-decoration'&&child.width===e.width&&child.fill!=='none')next.fill=e.umlKind==='object'?'#f0eaff':'#e8efff';
+      if(child.type==='ellipse'&&e.umlKind==='usecase')next.fill='#ede5ff';
+      if(child.type==='ellipse'&&e.label==='Association BDD')next.fill='#fff6d5';
+      if(['entity-name','uml-name','association-name'].includes(child.role)){
+        if(['entity-name','association-name'].includes(child.role)||['class','abstract-class','interface','object','participant','usecase'].includes(e.umlKind))next._centerX=e.x+e.width/2;
+        if(child.role==='entity-name'||['class','abstract-class','interface','object'].includes(e.umlKind))next.bold=true;
+      }
+      if(['attribute-type','attribute-nullable','column-label'].includes(child.role))next.stroke='#8b909b';
+      if(child.role==='attribute-key')next.stroke='#9b7622';
+      if(child.role==='header'||(child.type==='rect'&&child.role==='uml-decoration'&&child.width===e.width&&child.fill!=='none'))next._header=true;
+      return next;
+    });
+    inner = `${['Relation BDD','Relation UML'].includes(e.label) ? '' : `<rect class="group-hit" x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" fill="transparent" stroke="none"/>`}${themedChildren.map(child => elementSvg(child,false,editHints)).join('')}`;
   }
-  if (e.type === 'rect') inner = `<rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" rx="2" ${style}/>`;
+  if (e.type === 'rect') inner = e._header
+    ? `<path d="M${e.x+5},${e.y} H${e.x+e.width-5} Q${e.x+e.width},${e.y} ${e.x+e.width},${e.y+5} V${e.y+e.height} H${e.x} V${e.y+5} Q${e.x},${e.y} ${e.x+5},${e.y}Z" fill="${fill}" stroke="${color}" stroke-width="${e.strokeWidth||1}"/>`
+    : `<rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" rx="${['frame','uml-frame'].includes(e.role)?5:2}" ${style}/>`;
   if (e.type === 'ellipse') inner = `<ellipse cx="${e.x + e.width / 2}" cy="${e.y + e.height / 2}" rx="${e.width / 2}" ry="${e.height / 2}" ${style}/>`;
   if (e.type === 'line' || e.type === 'arrow') {
     const points=e.route?.length?e.route:[{x:e.x,y:e.y},{x:e.x2,y:e.y2}],d=points.map((p,i)=>`${i?'L':'M'}${p.x},${p.y}`).join(' ');
@@ -45,7 +62,8 @@ export function elementSvg(e, selected = false,editHints=false) {
     const bounds = elementBounds(e);
     const background = e.text.trim() && ['relation-name', 'cardinality-left', 'cardinality-right', 'uml-relation-name', 'uml-source-label', 'uml-target-label'].includes(e.role)
       ? `<rect class="relation-label-background" x="${bounds.x - 4}" y="${bounds.y - 2}" width="${bounds.width + 8}" height="${bounds.height + 4}" rx="3" fill="#ffffff" stroke="none" pointer-events="none"/>` : '';
-    const text = e.text.trim()||placeholder ? `<text${placeholder?' class="diagram-placeholder"':''} x="${e.x}" y="${e.y}" font-size="${size}" fill="${placeholder?'#9ca3b6':color}" font-family="ui-monospace, monospace"${e.bold ? ' font-weight="700"' : ''}${e.italic ? ' font-style="italic"' : ''}${e.underline ? ' text-decoration="underline"' : ''}>${lines.map((line, i) => `<tspan x="${e.x}" dy="${i ? size * 1.5 : 0}">${escape(line) || ' '}</tspan>`).join('')}</text>` : '';
+    const textX=e._centerX??e.x;
+    const text = e.text.trim()||placeholder ? `<text${placeholder?' class="diagram-placeholder"':''} x="${textX}" y="${e.y}"${e._centerX!==undefined?' text-anchor="middle"':''} font-size="${size}" fill="${placeholder?'#9ca3b6':color}" font-family="${e.role?'Arial, Helvetica, sans-serif':'ui-monospace, monospace'}"${e.bold ? ' font-weight="700"' : ''}${e.italic ? ' font-style="italic"' : ''}${e.underline ? ' text-decoration="underline"' : ''}>${lines.map((line, i) => `<tspan x="${textX}" dy="${i ? size * 1.5 : 0}">${escape(line) || ' '}</tspan>`).join('')}</text>` : '';
     inner = `${background}<rect class="text-hit" x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="transparent" stroke="none"/>${text}`;
   }
   const pointerStyle = ['Relation BDD','Relation UML'].includes(e.label) ? ' style="pointer-events:none"' : ['relation-line','uml-relation-line'].includes(e.role) ? ' style="pointer-events:visiblePainted"' : '';

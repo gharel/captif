@@ -16,6 +16,7 @@ import { DEFAULT_DRAWING_STYLE,applyDrawingStyle } from './drawing-style.js';
 import { emptyBdd,emptyUml,isDiagram,editableDiagramText,editDiagramRows,diagramChoices,diagramPlaceholder } from './diagram-inline.js';
 import { alignElements,autoLayout,isLayoutBox } from './layout.js';
 import { editableConnector,resolveDiagramConnections } from './diagram-connections.js';
+import { diagramPreview } from './diagram-preview.js';
 
 const loaded = loadCopy();
 let history = createHistory(loaded.document || createDocument());
@@ -142,9 +143,11 @@ app.innerHTML = `
       ${umlPaletteMarkup()}
       <section id="bdd-palette" role="tabpanel" aria-labelledby="library-bdd" hidden>
       <div class="sidebar-heading mt-7"><span>MODÉLISATION BDD</span><span class="tag">MCD / MLD</span></div>
-      <button class="template-button" id="entity"><span>${icon('pages')}</span><div>Entité / table<small>Attributs, types, clés PK et FK</small></div><span>＋</span></button>
-      <button class="template-button" id="association"><span>${icon('ellipse')}</span><div>Association<small>Nom et attributs de l'association</small></div><span>＋</span></button>
-      <button class="template-button" id="relation"><span>${icon('line')}</span><div>Lien et cardinalités<small>0,1 · 1,1 · 0,N · 1,N</small></div><span>＋</span></button>
+      <div class="uml-node-grid bdd-node-grid">
+      <button class="uml-node-button" id="entity">${diagramPreview('entity')}<strong>Entité / table</strong><small>Attributs, types et clés</small></button>
+      <button class="uml-node-button" id="association">${diagramPreview('association')}<strong>Association</strong><small>Nom et attributs</small></button>
+      <button class="uml-node-button bdd-link-button" id="relation">${diagramPreview('relation')}<strong>Lien et cardinalités</strong><small>0,1 · 1,1 · 0,N · 1,N</small></button>
+      </div>
       <p class="palette-note">Reliez deux éléments : les liens suivent leurs déplacements. Cliquez sur les cellules pour les remplir directement.</p>
       </section>
     </aside>
@@ -367,7 +370,7 @@ function beginTextEdit(elementId) {
   const field = editor.querySelector('#inline-text');
   field.value = target.text;
   if(!choices)field.placeholder=diagramPlaceholder(target);
-  field.style.fontSize = `${target.fontSize * scale}px`;
+  field.style.fontSize = `${Math.max(12,target.fontSize * scale)}px`;
   field.style.fontWeight=target.bold?'700':'400';field.style.fontStyle=target.italic?'italic':'normal';
   field.style.lineHeight = '1.5';
   field.style.minHeight = single?'36px':`${Math.max(95, Math.min(450, bounds.height * scale + 24))}px`;

@@ -60,7 +60,7 @@ test('rendu écran et impression résolvent les mêmes liens et préservent les 
   assert.equal(readRelation(clean.pages[0].elements[2]).sourceId,source.id);
   const print=pageSvg(clean.pages[0]);
   assert.match(print,/1,1/); assert.match(print,/0,N/);
-  assert.match(print,/fill="#eef0ff"/);
+  assert.match(print,/fill="#fff6d5"/);
   assert.doesNotMatch(print,/selection-outline/);
   const draft=translateElement(source,0,100);
   const screen=pageSvg(clean.pages[0],{draft});
@@ -116,7 +116,8 @@ test('relations courtes : détour en U et libellés séparés suivent les tables
 });
 
 test('relations courtes près du bas : détour au-dessus des tables', () => {
-  const source=createEntity({x:52,y:850,name:'CLIENT'}),target=createEntity({x:412,y:850,name:'COMMANDE'});
+  const nearBottom=1123-createEntity().height-60;
+  const source=createEntity({x:52,y:nearBottom,name:'CLIENT'}),target=createEntity({x:412,y:nearBottom,name:'COMMANDE'});
   const relation=createRelation({sourceId:source.id,targetId:target.id});
   const routed=resolveRelations({elements:[source,target,relation]}).elements[2];
   const segments=routed.children.filter(c=>c.role==='relation-line');
