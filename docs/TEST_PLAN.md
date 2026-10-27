@@ -16,6 +16,8 @@ La reprise utilise `createMonitor({now, onChange, restored: snapshot})`. Une ses
 
 ## Couverture automatique
 
+Compléments de régression : vérifier la sauvegarde/reprise complète d'un diagramme édité (avec coudes), la conservation brute d'une sauvegarde illisible, les erreurs de stockage, les petites annotations sémantiques sans relâcher les limites des textes libres, et l'échappement des noms BDD/UML à l'impression. Les globals du stockage sont simulés puis restaurés ; aucun accès aux copies réelles ni au réseau.
+
 Évolution de l'atelier : le modèle courant ne conserve plus que `student: {name: ''}`. Le type `group` contient un cadre et du texte en coordonnées absolues, avec un niveau d'imbrication. Les tests de groupe et de rendu ont été ajoutés avant l'implémentation correspondante ; la recette du double-clic et de l'édition directe est consignée dans `UX_UPDATE.md`.
 
 - Copie et identifiants uniques, isolation des pages et refus de supprimer la dernière.

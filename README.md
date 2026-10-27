@@ -4,6 +4,8 @@ Application publiée : [gharel.github.io/captif](https://gharel.github.io/captif
 
 Chaque push sur `main` lance les tests, compile le projet et le déploie sur GitHub Pages via `.github/workflows/pages.yml`.
 
+Les règles de contribution et de validation se trouvent dans [AGENTS.md](AGENTS.md). La couverture automatique et la recette navigateur sont décrites dans [docs/TEST_PLAN.md](docs/TEST_PLAN.md). Lancer les tests avec `npm test` ; ils utilisent le runner natif Node, sans réseau ni accès aux copies réelles.
+
 Une copie numérique pour les évaluations : écrire du texte et dessiner des schémas sur des feuilles A4, puis imprimer la copie et son bilan en PDF.
 
 Projet JavaScript ESM, Vite 7 et Tailwind CSS 4 via le plugin officiel Vite. Interface en français, sans bibliothèque d'interface, sans compte ni serveur applicatif. Aucune police, image ou télémétrie distante n'est chargée par l'application.
