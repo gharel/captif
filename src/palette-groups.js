@@ -1,6 +1,7 @@
 export const DEFAULT_FAMILY='data';
 export const DIAGRAM_GROUPS=Object.freeze([
-  {id:'data',label:'MCD · MLD',icon:'entity',nodes:['entity','bdd-association','weak-entity','identifying-relationship','database'],relations:['bdd-relation','erd-one-one','erd-one-many','erd-zero-one','erd-zero-many','erd-many-many']},
+  {id:'annotations',label:'Annotations',icon:'note',nodes:['note','code-block'],relations:[]},
+  {id:'data',label:'MCD · MLD',icon:'entity',nodes:['entity','bdd-association'],relations:['bdd-relation','erd-one-one','erd-one-many','erd-zero-one','erd-zero-many','erd-many-many']},
   {id:'classes',label:'Classes',icon:'class',nodes:['class'],relations:['association','directed-association','aggregation','composition','generalization','realization','dependency']},
   {id:'objects',label:'Objets',icon:'object',nodes:['object'],relations:['object-link','dependency']},
   {id:'usecases',label:'Cas d’utilisation',icon:'usecase',nodes:['actor','usecase','system'],relations:['association','include','extend','exclude','generalization']},
@@ -9,5 +10,4 @@ export const DIAGRAM_GROUPS=Object.freeze([
   {id:'activity',label:'Activités',icon:'action',nodes:['action','initial','final','flow-final','decision','fork','join','swimlane','send-signal','receive-signal','time-event','data-object'],relations:['flow']},
   {id:'components',label:'Composants · Déploiement',icon:'component',nodes:['package','component','artifact','deployment-node','port','provided-interface','required-interface','database'],relations:['dependency','realization','association']},
   {id:'process',label:'Processus',icon:'process',nodes:['process','subprocess','input-output','document','manual-input','preparation'],relations:['flow']},
-  {id:'annotations',label:'Annotations',icon:'note',nodes:['note','code-block'],relations:[]},
 ].map(group=>Object.freeze({...group,nodes:Object.freeze(group.nodes),relations:Object.freeze(group.relations)})));

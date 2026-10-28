@@ -45,7 +45,7 @@ export const UML_DIAGRAMS = {
   deployment:{label:'Déploiement et composants',description:'Nœuds et interfaces.',nodes:['deployment-node','port','provided-interface','required-interface'],relations:['dependency']},
   flowchart:{label:'Processus',description:'Processus et événements.',nodes:['entry-point','exit-point','terminate','junction','send-signal','receive-signal','time-event','data-object','process','subprocess','input-output','document','manual-input','preparation','weak-entity','identifying-relationship'],relations:['flow','erd-one-one','erd-one-many','erd-zero-one','erd-zero-many','erd-many-many']},
 };
-export const PALETTE_NODE_KINDS=UML_NODE_KINDS.filter(kind=>!['abstract-class','interface'].includes(kind));
+export const PALETTE_NODE_KINDS=UML_NODE_KINDS.filter(kind=>!['abstract-class','interface','weak-entity','identifying-relationship'].includes(kind));
 export function umlPaletteMarkup() {
   const button=(attrs,name,svg)=>`<button type="button" class="shape-icon-button" ${attrs} aria-label="${esc(name)}" title="${esc(name)}">${svg}</button>`;
   const node=kind=>kind==='entity'?button('id="entity"','Entité',shapeIcon('entity')):kind==='bdd-association'?button('id="association"','Association — MCD',shapeIcon('association')):kind==='code-block'?button('id="code-block"','Bloc de code',shapeIcon(kind)):button(`data-uml-node="${kind}"`,NODE_LABELS[kind][0],shapeIcon(kind));

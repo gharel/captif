@@ -287,7 +287,7 @@ function showShapeTooltip(event){
 const families=[...library.querySelectorAll('[data-diagram-family]')];
 for(const family of families)family.open=family.dataset.diagramFamily===activeFamily;
 library.addEventListener('toggle',event=>{
-  const family=event.target;if(!family.matches('[data-diagram-family]')||!family.open)return;
+  const family=event.target;if(!family.matches('[data-diagram-family]')||!family.open||family.dataset.diagramFamily===activeFamily)return;
   activeFamily=family.dataset.diagramFamily;
   for(const other of families)if(other!==family)other.open=false;
   hideShapeTooltip();saveVisualPreferences();

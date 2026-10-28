@@ -37,6 +37,16 @@ test('les groupes associent les composants attendus sans perdre le catalogue',()
   assert.equal(union.size,PALETTE_NODE_KINDS.length+UML_RELATION_KINDS.length+4);
 });
 
+test('Annotations arrive en premier et MCD / MLD conserve seulement ses deux formes simples',()=>{
+  assert.equal(DIAGRAM_GROUPS[0].id,'annotations');
+  const data=DIAGRAM_GROUPS.find(g=>g.id==='data');
+  assert.deepEqual(data.nodes,['entity','bdd-association']);
+  const html=umlPaletteMarkup();
+  assert.ok(html.indexOf('data-diagram-family="annotations"')<html.indexOf('data-diagram-family="data"'));
+  for(const kind of ['weak-entity','identifying-relationship'])assert.ok(!html.includes(`data-uml-node="${kind}"`));
+  assert.ok(DIAGRAM_GROUPS.find(g=>g.id==='components').nodes.includes('database'));
+});
+
 test('la note et les boîtes à compartiments sont identifiables par leur description de forme', () => {
   const html = umlPaletteMarkup();
   assert.match(html, /aria-label="Note[^"]*"/);

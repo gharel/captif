@@ -1,8 +1,10 @@
 # Bibliothèque par diagramme et interface neumorphique
 
+Ajustement demandé : placer Annotations avant les autres familles et retirer Entité faible, Relation identifiante et Base de données de MCD · MLD. Tester l’ordre et le contenu avant modification ; préserver les modèles existants et la base de données de Composants · Déploiement. MCD · MLD expose ainsi deux formes simples et ses six connexions.
+
 Plan : définir et tester le catalogue par familles ; remplacer les deux listes globales par des familles dépliables contenant formes et connexions ; mémoriser la famille ouverte et conserver la navigation clavier ; créer un thème anthracite neumorphique inspiré de la référence fournie, avec accent orange ; vérifier insertion, contrastes, saisie directe et publication.
 
-Critères : MCD/MLD, classes, objets, cas d'utilisation, séquence, états-transitions, activités, composants/déploiement, processus et annotations. Chaque famille présente les formes et relations pertinentes en icônes ; les noms des formes restent en infobulle et accessibles au clavier. Les 79 composants distincts restent disponibles, les composants partagés peuvent apparaître dans plusieurs familles et les identifiants HTML restent uniques. Aucune fenêtre de création ni exemple prérempli. Les modèles historiques de classe abstraite/interface restent lisibles mais ne sont pas dans la palette.
+Critères : MCD/MLD, classes, objets, cas d'utilisation, séquence, états-transitions, activités, composants/déploiement, processus et annotations. Chaque famille présente les formes et relations pertinentes en icônes ; les noms des formes restent en infobulle et accessibles au clavier. Après simplification MCD · MLD, 77 composants distincts restent disponibles, les composants partagés peuvent apparaître dans plusieurs familles et les identifiants HTML restent uniques. Aucune fenêtre de création ni exemple prérempli. Les modèles historiques de classe abstraite/interface restent lisibles mais ne sont pas dans la palette.
 
 Le thème reprend les surfaces anthracite, contours arrondis, doubles ombres douces, reliefs en creux et accent orange de l'image utilisateur. Le texte d'interface garde un contraste lisible et un focus distinct. La feuille A4 et son contenu restent blancs et inchangés, ainsi que l'impression. La dernière famille est une préférence locale, sans données de copie.
 
