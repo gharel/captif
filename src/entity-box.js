@@ -1,4 +1,5 @@
 import { W, H, elementBounds } from './geometry.js';
+import { DEFAULT_STROKE,DEFAULT_TEXT } from './stroke.js';
 
 export const isEntityBox = group => group?.label==='Entité BDD' && group.children?.some(c=>c.role==='box-body');
 export const readEntityBox = group => ({ title:group.children.find(c=>c.role==='box-title')?.text||'',body:group.children.find(c=>c.role==='box-body')?.text||'' });
@@ -6,8 +7,8 @@ export const readEntityBox = group => ({ title:group.children.find(c=>c.role==='
 /** A paper-like card: no column schema or supplied notation. */
 export function createEntityBox() {
   const x=70,y=100,width=260,height=150;
-  const child=(type,role,props)=>({id:crypto.randomUUID(),type,role,stroke:'#303540',strokeWidth:1,...props});
-  return {id:crypto.randomUUID(),type:'group',label:'Entité BDD',x,y,width,height,stroke:'#303540',strokeWidth:1,children:[
+  const child=(type,role,props)=>({id:crypto.randomUUID(),type,role,stroke:type==='text'?DEFAULT_TEXT:DEFAULT_STROKE,strokeWidth:1,...props});
+  return {id:crypto.randomUUID(),type:'group',label:'Entité BDD',x,y,width,height,stroke:DEFAULT_STROKE,strokeWidth:1,children:[
     child('rect','frame',{x,y,width,height,fill:'#ffffff'}),
     child('rect','header',{x,y,width,height:34,fill:'#fff6d5'}),
     child('line','separator',{x,y:y+34,x2:x+width,y2:y+34}),

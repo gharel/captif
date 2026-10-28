@@ -1,12 +1,13 @@
+import { DEFAULT_STROKE } from '../src/stroke.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { UML_RELATION_KINDS, createUmlRelation, readUmlRelation, updateUmlRelation, resolveUmlRelations } from '../src/uml-relations.js';
 import { createDocument, validateDocument, translateElement, removeElement } from '../src/model.js';
 import { pageSvg, elementSvg } from '../src/render.js';
 
-const node = (id, x, y, umlKind = 'class') => ({ id, type: 'group', label: 'Élément UML', umlKind, x, y, width: 220, height: umlKind === 'participant' ? 600 : 160, stroke: '#334155', strokeWidth: 1, children: [
-  { id: `${id}-frame`, type: 'rect', x, y, width: 220, height: 40, stroke: '#334155', strokeWidth: 1, fill: '#ffffff', role: 'uml-frame' },
-  { id: `${id}-name`, type: 'text', x: x + 12, y: y + 26, text: id, fontSize: 16, stroke: '#334155', strokeWidth: 1, role: 'uml-name' },
+const node = (id, x, y, umlKind = 'class') => ({ id, type: 'group', label: 'Élément UML', umlKind, x, y, width: 220, height: umlKind === 'participant' ? 600 : 160, stroke: DEFAULT_STROKE, strokeWidth: 1, children: [
+  { id: `${id}-frame`, type: 'rect', x, y, width: 220, height: 40, stroke: DEFAULT_STROKE, strokeWidth: 1, fill: '#ffffff', role: 'uml-frame' },
+  { id: `${id}-name`, type: 'text', x: x + 12, y: y + 26, text: id, fontSize: 16, stroke: DEFAULT_STROKE, strokeWidth: 1, role: 'uml-name' },
 ] });
 
 test('toutes les relations UML sont configurables et sérialisables', () => {
@@ -26,7 +27,7 @@ test('notations UML : diamants, triangles, pointillés et stéréotypes restent 
   const aggregation=createUmlRelation({kind:'aggregation'});
   const composition=createUmlRelation({kind:'composition'});
   assert.equal(aggregation.children.find(c=>c.role==='uml-marker').fill,'#ffffff');
-  assert.equal(composition.children.find(c=>c.role==='uml-marker').fill,'#334155');
+  assert.equal(composition.children.find(c=>c.role==='uml-marker').fill,DEFAULT_STROKE);
   const generalization=createUmlRelation({kind:'generalization'});
   assert.equal(generalization.children.find(c=>c.role==='uml-marker').points.length,4);
   assert.equal(createUmlRelation({kind:'realization'}).children.find(c=>c.role==='uml-relation-line').dash,'6 5');
@@ -49,7 +50,7 @@ test('séquence : messages horizontaux, retour pointillé et auto-message en U',
   const resolved=resolveUmlRelations({elements:[a,b,sync]}).elements[2];
   const line=resolved.children.find(c=>c.role==='uml-relation-line');
   assert.equal(line.y,line.y2); assert.equal(line.x,150); assert.equal(line.x2,550);
-  assert.equal(resolved.children.find(c=>c.role==='uml-marker').fill,'#334155');
+  assert.equal(resolved.children.find(c=>c.role==='uml-marker').fill,DEFAULT_STROKE);
   const self=createUmlRelation({kind:'message-self',sourceId:a.id,targetId:a.id});
   const selfResolved=resolveUmlRelations({elements:[a,self]}).elements[1];
   assert.equal(selfResolved.children.filter(c=>c.role==='uml-relation-line').length,3);

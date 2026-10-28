@@ -1,12 +1,13 @@
 import { W,H,elementBounds } from './geometry.js';
+import { DEFAULT_STROKE } from './stroke.js';
 import { CODE_LANGUAGES } from './code-languages.js';
 export { CODE_LANGUAGES } from './code-languages.js';
 export const isCodeBlock=group=>group?.type==='group'&&group.label==='Bloc de code';
 export const codeText=group=>group.children.find(c=>c.role==='code-content')?.text||'';
 export function createCodeBlock({text='',language='plaintext'}={}){
   const x=70,y=100,width=420,height=180;
-  const child=(type,role,props)=>({id:crypto.randomUUID(),type,role,stroke:'#ccd4e2',strokeWidth:1,...props});
-  const group={id:crypto.randomUUID(),type:'group',label:'Bloc de code',codeLanguage:language,x,y,width,height,stroke:'#ccd4e2',strokeWidth:1,children:[
+  const child=(type,role,props)=>({id:crypto.randomUUID(),type,role,stroke:DEFAULT_STROKE,strokeWidth:1,...props});
+  const group={id:crypto.randomUUID(),type:'group',label:'Bloc de code',codeLanguage:language,x,y,width,height,stroke:DEFAULT_STROKE,strokeWidth:1,children:[
     child('rect','frame',{x,y,width,height,fill:'#f8faff'}),
     child('rect','code-header',{x,y,width,height:36,fill:'#1e293b'}),
     ...['#fb7185','#fbbf24','#34d399'].map((fill,i)=>child('ellipse','code-decoration',{x:x+14+i*15,y:y+14,width:7,height:7,fill,stroke:fill})),

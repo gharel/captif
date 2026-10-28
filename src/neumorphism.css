@@ -56,7 +56,7 @@
   .toolbar-divider { background:#484f58; }
   #stroke-trigger { border:1px solid #3d454e; border-radius:15px; color:#cdd6e1; background:linear-gradient(145deg,#343a40,#282d32); box-shadow:var(--neo-raised); }
   #stroke-trigger:hover,#stroke-trigger[aria-expanded=true] { color:#ffb98b; background:#282c31; border-color:#8c624b; box-shadow:var(--neo-inset); }
-  #stroke-chip { border:1px solid #87919e; }
+  #stroke-chip { width:26px; height:26px; flex:0 0 26px; border:1px solid #a5afbc; border-radius:7px; }
   .canvas-breadcrumb,.desk-footer { color:#bbc5d1; }
   .canvas-breadcrumb .sidebar-toggle { color:#c1cbd7; background:#2c3137; border-color:#424a54; box-shadow:var(--neo-raised); border-radius:8px; }
   .canvas-breadcrumb .sidebar-toggle:hover,.canvas-breadcrumb .sidebar-toggle[aria-expanded=false] { color:#ffb88a; background:#24292e; border-color:#7e5c46; box-shadow:var(--neo-inset); }

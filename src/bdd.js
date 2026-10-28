@@ -1,16 +1,17 @@
 import { W, H, elementBounds } from './geometry.js';
+import { DEFAULT_STROKE,DEFAULT_TEXT } from './stroke.js';
 
 export const CARDINALITIES = ['0,1', '1,1', '0,N', '1,N'];
 const uid = () => crypto.randomUUID();
-const stroke = '#303540';
+const stroke = DEFAULT_STROKE;
 const textValue = (value, fallback = '', limit = 80) => {
   const result = String(value ?? fallback).trim();
   if (result.length > limit || result.includes('\n')) throw new Error(`Texte limité à ${limit} caractères sur une ligne.`);
   return result;
 };
-const primitive = (type, props) => ({ id: uid(), type, stroke, strokeWidth: 1, ...props });
+const primitive = (type, props) => ({ id: uid(), type, stroke:type==='text'?DEFAULT_TEXT:stroke, strokeWidth: 1, ...props });
 const text = (role, x, y, content, fontSize = 13, props = {}) => primitive('text', { role, x, y, text: String(content), fontSize, ...props });
-const line = (role, x, y, x2, y2) => primitive('line', { role, x, y, x2, y2, stroke: '#cbd5e1' });
+const line = (role, x, y, x2, y2) => primitive('line', { role, x, y, x2, y2 });
 const rect = (role, x, y, width, height, fill = '#ffffff') => primitive('rect', { role, x, y, width, height, fill });
 
 function attributesValue(attributes) {

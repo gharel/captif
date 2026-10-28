@@ -232,7 +232,7 @@ input[type=color]::-webkit-color-swatch { border-radius: 5px; border: 1px solid 
 .stroke-chevron svg { width:16px; height:16px; }
 #stroke-trigger[aria-expanded=true] .stroke-chevron { transform:rotate(180deg); }
 #stroke-trigger:hover,#stroke-trigger[aria-expanded=true] { border-color:#ada5f9; background:#fff; }
-#stroke-chip { width:15px; height:15px; border:1px solid #0001; border-radius:5px; background:#263833; }
+#stroke-chip { width:26px; height:26px; flex:0 0 26px; border:1px solid #0001; border-radius:7px; background:#888c94; }
 .stroke-trigger-preview { width:42px; height:12px; }
 .stroke-trigger-preview svg { width:42px; height:12px; }
 #stroke-summary { font-weight:550; white-space:nowrap; }

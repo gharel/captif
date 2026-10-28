@@ -1,8 +1,9 @@
 import { W, H, elementBounds, translateElement } from './geometry.js';
+import { DEFAULT_STROKE,DEFAULT_TEXT } from './stroke.js';
 
 export const UML_RELATION_KINDS = ['association','directed-association','aggregation','composition','generalization','realization','dependency','object-link','include','extend','exclude','transition','flow','message-simple','message-sync','message-async','message-return','message-self','message-timed','message-found','message-lost','message-create','message-delete','message-balking','message-timeout','erd-one-one','erd-one-many','erd-zero-one','erd-zero-many','erd-many-many'];
 const uid = () => crypto.randomUUID();
-const ink = '#334155';
+const ink = DEFAULT_STROKE;
 const dashed = new Set(['realization','dependency','include','extend','exclude','message-return','message-create','message-timeout']);
 const sequence = kind => kind.startsWith('message-');
 const value = (text, limit = 60) => {
@@ -11,7 +12,7 @@ const value = (text, limit = 60) => {
   return text;
 };
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-const child = (type, role, props) => ({id:uid(),type,role,stroke:ink,strokeWidth:1.4,...props});
+const child = (type, role, props) => ({id:uid(),type,role,stroke:type==='text'?DEFAULT_TEXT:ink,strokeWidth:1.4,...props});
 const label = (role, x, y, text) => child('text',role,{x,y,text,fontSize:13});
 const line = (x,y,x2,y2,dash) => child('line','uml-relation-line',{x,y,x2,y2,...(dash ? {dash} : {})});
 

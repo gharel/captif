@@ -1,8 +1,9 @@
 import { W, H } from './geometry.js';
+import { DEFAULT_STROKE,DEFAULT_TEXT } from './stroke.js';
 
 export const UML_NODE_KINDS = ['class', 'abstract-class', 'interface', 'object', 'actor', 'usecase', 'system', 'participant', 'activation', 'fragment', 'destruction', 'note', 'package', 'state', 'action', 'initial', 'final', 'flow-final', 'decision', 'fork', 'join', 'history', 'deep-history', 'swimlane', 'component', 'artifact', 'database', 'deployment-node', 'port', 'provided-interface', 'required-interface', 'entry-point', 'exit-point', 'terminate', 'junction', 'send-signal', 'receive-signal', 'time-event', 'data-object', 'process', 'subprocess', 'input-output', 'document', 'manual-input', 'preparation', 'weak-entity', 'identifying-relationship'];
 const uid = () => crypto.randomUUID();
-const color = '#303540';
+const color = DEFAULT_STROKE;
 const defaults = { class: 'Classe', 'abstract-class': 'ClasseAbstraite', interface: 'Interface', object: 'instance', actor: 'Acteur', usecase: "Cas d’utilisation", system: 'Système', participant: 'Participant', activation: '', fragment: 'Fragment', destruction: '', note: 'Note' };
 const string = (value, fallback = '', limit = 50) => {
   const result = String(value ?? fallback).trim();
@@ -19,7 +20,7 @@ const dimension = (value, fallback, min, max) => {
   if (!Number.isFinite(result) || result < min || result > max) throw new Error(`Dimension attendue entre ${min} et ${max}.`);
   return result;
 };
-const primitive = (type, values) => ({ id: uid(), type, stroke: color, strokeWidth: 1, ...values });
+const primitive = (type, values) => ({ id: uid(), type, stroke: type==='text'?DEFAULT_TEXT:color, strokeWidth: 1, ...values });
 const rect = (x, y, width, height, fill = '#ffffff', extra = {}) => primitive('rect', { role: 'uml-frame', x, y, width, height, fill, ...extra });
 const line = (x, y, x2, y2, extra = {}) => primitive('line', { role: 'uml-decoration', x, y, x2, y2, ...extra });
 const text = (role, x, y, value, fontSize = 14, extra = {}) => primitive('text', { role, x, y, text: value, fontSize, ...extra });
