@@ -9,6 +9,7 @@ import { resolveConnectors,anchorsForElements,bendHandles } from './connectors.j
 import { diagramActions,isDiagram } from './diagram-inline.js';
 import { editableConnector,resolveDiagramConnections } from './diagram-connections.js';
 import { codeSvg } from './code-highlight.js';
+import { diagramTextPresentation,diagramSurface,darkDiagramTitle } from './diagram-presentation.js';
 export { W, H, textLines } from './geometry.js';
 export const escape = (v = '') => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -22,29 +23,27 @@ export function textFits(e) {
 
 export function elementSvg(e, selected = false,editHints=false) {
   const color = /^#[\da-f]{6}$/i.test(e.stroke) ? e.stroke : '#263833';
-  const fill = e.fill === 'none' || /^#[\da-f]{6}$/i.test(e.fill) ? e.fill : 'none';
+  const gradientId=`surface-${encodeURIComponent(e.id)}`;
+  const fill = e._gradient?`url(#${gradientId})`:e.fill === 'none' || /^#[\da-f]{6}$/i.test(e.fill) ? e.fill : 'none';
   const pattern=scaledDash(e.dash,e.strokeWidth||2);
   const dash = pattern ? ` stroke-dasharray="${pattern}"` : '';
   const style = `stroke="${color}" stroke-width="${e.strokeWidth || 2}" fill="${fill}" stroke-linecap="round" stroke-linejoin="round"${dash}`;
   let inner = '';
   if (e.type === 'group') {
     const themedChildren=e.children.map(child=>{
-      const next={...child};
+      const next={...diagramTextPresentation(child,e)};
+      next._gradient=diagramSurface(e,child);
+      if(darkDiagramTitle(e,child))next.stroke='#ffffff';
       if(child.role==='code-content')next._codeLanguage=e.codeLanguage||'plaintext';
       if(child.role==='code-language')next._rightX=e.x+e.width-20;
       if(child.type==='text'&&!child.text.trim()&&['uml-name','uml-attributes','uml-operations','uml-condition'].includes(child.role)){
-        const bounds=elementBounds(child);
+        const bounds=elementBounds(next);
         const following=e.children.filter(c=>c.type==='text'&&c.y>child.y).map(c=>elementBounds(c).y).sort((a,b)=>a-b)[0];
         const end=Math.min(following??e.y+e.height-8,['uml-name','uml-condition'].includes(child.role)?bounds.y+36:Infinity);
         next._hitBounds={x:e.x+12,y:bounds.y,width:Math.max(1,e.width-24),height:Math.max(bounds.height,end-bounds.y-4)};
       }
       if(child.type==='rect'&&child.role==='uml-frame'&&['state','action'].includes(e.umlKind))next._radius=e.umlKind==='action'?Math.min(child.height/2,32):12;
-      if(child.role==='header')next.fill='#fff6d5';
-      if(child.type==='rect'&&child.role==='uml-decoration'&&child.width===e.width&&child.fill!=='none')next.fill=e.umlKind==='object'?'#f0eaff':'#e8efff';
-      if(child.type==='ellipse'&&e.umlKind==='usecase')next.fill='#ede5ff';
-      if(child.type==='ellipse'&&e.label==='Association BDD')next.fill='#fff6d5';
       if(['box-title','entity-name','uml-name','association-name'].includes(child.role)){
-        if(['box-title','entity-name','association-name'].includes(child.role)||['class','abstract-class','interface','object','participant','usecase','actor'].includes(e.umlKind))next._centerX=e.x+e.width/2;
         if((child.role==='entity-name'||['class','abstract-class','interface','object'].includes(e.umlKind))&&child.bold===undefined)next.bold=true;
       }
       if(['attribute-type','attribute-nullable','column-label'].includes(child.role))next.stroke='#8b909b';
@@ -81,7 +80,8 @@ export function elementSvg(e, selected = false,editHints=false) {
     inner = `${background}<rect class="text-hit" x="${hit.x}" y="${hit.y}" width="${hit.width}" height="${hit.height}" fill="transparent" stroke="none"/>${text}`;
   }
   const pointerStyle = ['Relation BDD','Relation UML'].includes(e.label) ? ' style="pointer-events:none"' : ['relation-line','uml-relation-line'].includes(e.role) ? ' style="pointer-events:visiblePainted"' : '';
-  return `<g data-element="${escape(e.id)}"${e.type === 'group' ? ` data-group="${escape(e.id)}" role="group" aria-label="${escape(e.label)}"` : ''} class="drawing-element${e.type === 'group' ? ' group-element' : ''}"${pointerStyle}>${inner}${selected ? outline(e, 'selection-outline') : ''}</g>`;
+  const gradient=e._gradient?`<defs><linearGradient id="${gradientId}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${e._gradient[0]}"/><stop offset="1" stop-color="${e._gradient[1]}"/></linearGradient></defs>`:'';
+  return `<g data-element="${escape(e.id)}"${e.type === 'group' ? ` data-group="${escape(e.id)}" role="group" aria-label="${escape(e.label)}"` : ''} class="drawing-element${e.type === 'group' ? ' group-element' : ''}"${pointerStyle}>${gradient}${inner}${selected ? outline(e, 'selection-outline') : ''}</g>`;
 }
 
 function findElement(elements, id) {
@@ -89,7 +89,7 @@ function findElement(elements, id) {
     if (element.id === id) return element;
     if (element.children) {
       const found = element.children.find(child => child.id === id);
-      if (found) return found;
+      if (found) return diagramTextPresentation(found,element);
     }
   }
 }

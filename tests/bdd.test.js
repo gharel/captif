@@ -60,7 +60,7 @@ test('rendu écran et impression résolvent les mêmes liens et préservent les 
   assert.equal(readRelation(clean.pages[0].elements[2]).sourceId,source.id);
   const print=pageSvg(clean.pages[0]);
   assert.match(print,/1,1/); assert.match(print,/0,N/);
-  assert.match(print,/fill="#fff6d5"/);
+  assert.match(print,/<linearGradient/);
   assert.doesNotMatch(print,/selection-outline/);
   const draft=translateElement(source,0,100);
   const screen=pageSvg(clean.pages[0],{draft});

@@ -103,7 +103,7 @@ test('le thème modernise un ancien en-tête uniquement au rendu sans réécrire
   const page = { elements: [entity] };
   const before = structuredClone(page);
   const svg = pageSvg(page);
-  assert.match(svg, /fill="#fff6d5"/);
+  assert.match(svg, /<linearGradient/);
   assert.doesNotMatch(svg, /fill="#eef0ff"/);
   assert.deepEqual(page, before);
 });
