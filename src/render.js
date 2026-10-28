@@ -38,7 +38,7 @@ export function elementSvg(e, selected = false,editHints=false) {
       if(child.type==='ellipse'&&e.umlKind==='usecase')next.fill='#ede5ff';
       if(child.type==='ellipse'&&e.label==='Association BDD')next.fill='#fff6d5';
       if(['box-title','entity-name','uml-name','association-name'].includes(child.role)){
-        if(['box-title','entity-name','association-name'].includes(child.role)||['class','abstract-class','interface','object','participant','usecase'].includes(e.umlKind))next._centerX=e.x+e.width/2;
+        if(['box-title','entity-name','association-name'].includes(child.role)||['class','abstract-class','interface','object','participant','usecase','actor'].includes(e.umlKind))next._centerX=e.x+e.width/2;
         if((child.role==='entity-name'||['class','abstract-class','interface','object'].includes(e.umlKind))&&child.bold===undefined)next.bold=true;
       }
       if(['attribute-type','attribute-nullable','column-label'].includes(child.role))next.stroke='#8b909b';

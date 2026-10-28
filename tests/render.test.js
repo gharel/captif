@@ -1,6 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createUmlNode } from '../src/uml-nodes.js';
 import { pageSvg, elementSvg } from '../src/render.js';
+
+test('le nom de l’acteur reste centré sur sa silhouette à l’écran et à l’impression', () => {
+  const actor=createUmlNode('actor',{x:110,y:90,name:'Responsable des inscriptions'}),before=structuredClone(actor);
+  const center=actor.x+actor.width/2;
+  for(const options of [{},{editHints:true}]){
+    const svg=pageSvg({elements:[actor]},options);
+    assert.match(svg,new RegExp(`<text x="${center}"[^>]+text-anchor="middle"`));
+  }
+  assert.deepEqual(actor,before);
+});
 
 const group = {
   id: 'uml', type: 'group', label: 'Classe UML', x: 50, y: 60, width: 220, height: 160, stroke: '#263833', strokeWidth: 2,

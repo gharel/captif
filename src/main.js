@@ -355,6 +355,8 @@ function beginTextEdit(elementId) {
   editor.style.left = `${left}px`;
   editor.style.top = `${Math.max(8, bounds.y * scale - 8)}px`;
   editor.style.width = `${Math.min(W * scale - left - 12, Math.max(240, bounds.width * scale + 24))}px`;
+  const actorLabel=parent?.umlKind==='actor'&&target.role==='uml-name';
+  if(actorLabel){const width=parseFloat(editor.style.width);editor.style.left=`${Math.max(8,Math.min(W*scale-width-8,(parent.x+parent.width/2)*scale-width/2))}px`;}
   const choices=diagramChoices(target,parent),single=Boolean(target.role)&&!['uml-attributes','uml-operations','box-body'].includes(target.role);
   editor.style.top = `${Math.max(8,bounds.y * scale - (choices?8:48))}px`;
   editor.classList.toggle('diagram-cell-editor',Boolean(target.role));
@@ -362,6 +364,7 @@ function beginTextEdit(elementId) {
   editor.innerHTML = `${choices?'':textFormatMarkup(editingText.format)}<label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label>${control}<div class="inline-editor-actions"><span class="small">${single?'Entrée : valider · Tab : suivant':'Ctrl + Entrée pour valider'}</span><button id="cancel-inline" class="button secondary" type="button">Annuler</button><button id="save-inline" class="button primary" type="button">Enregistrer</button></div>`;
   document.querySelector('#paper-shell').append(editor);
   const field = editor.querySelector('#inline-text');
+  if(actorLabel)field.style.textAlign='center';
   field.value = target.text;
   if(!choices)field.placeholder=diagramPlaceholder(target);
   field.style.fontSize = `${Math.max(12,target.fontSize * scale)}px`;
