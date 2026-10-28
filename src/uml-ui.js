@@ -1,4 +1,4 @@
-import { createUmlNode, readUmlNode, updateUmlNode, isUmlNode } from './uml-nodes.js';
+import { createUmlNode, readUmlNode, updateUmlNode, isUmlNode, UML_NODE_KINDS } from './uml-nodes.js';
 import { createUmlRelation, readUmlRelation, updateUmlRelation, isUmlRelation } from './uml-relations.js';
 import { escape as esc } from './render.js';
 import { shapeIcon } from './shape-icon.js';
@@ -8,6 +8,10 @@ export const NODE_LABELS = {
   object: ['Objet / instance', 'Instance, classe et valeurs'], actor: ['Acteur', 'Rôle externe au système'], usecase: ["Cas d’utilisation", 'Objectif ou service rendu'],
   system: ['Frontière du système', 'Cadre des cas d’utilisation'], participant: ['Participant', 'En-tête et ligne de vie'], activation: ['Activation', "Période d'exécution"],
   fragment: ['Fragment combiné', 'alt, opt, loop ou par'], destruction: ['Destruction', 'Fin de la ligne de vie'], note: ['Note', 'Commentaire du diagramme'],
+  package:['Paquetage','Conteneur à onglet'],state:['État','État et compartiment'],action:['Action / activité','Action à bords arrondis'],
+  initial:['État initial','Point plein'],final:['État final','Cible'], 'flow-final':['Fin de flux','Cercle barré'],decision:['Décision / fusion','Losange'],
+  fork:['Fourche de parallélisme','Barre horizontale'],join:['Jonction de parallélisme','Barre verticale'],history:['Historique','Historique simple'],
+  'deep-history':['Historique profond','Historique profond'],swimlane:['Couloir d’activité','Partition'],component:['Composant','Composant UML'],artifact:['Artefact','Document'],database:['Base de données','Cylindre'],
 };
 export const RELATION_LABELS = {
   association: ['Association', 'Lien simple entre éléments'], 'directed-association': ['Association orientée', 'Navigabilité vers l’arrivée'],
@@ -16,24 +20,31 @@ export const RELATION_LABELS = {
   'object-link': ["Lien d’objets", 'Association entre instances'], include: ['«include»', 'Du cas incluant vers le cas inclus'], extend: ['«extend»', 'Du cas d’extension vers le cas étendu'],
   'message-sync': ['Message synchrone', 'Flèche pleine vers le destinataire'], 'message-async': ['Message asynchrone', 'Flèche ouverte'],
   'message-return': ['Retour', 'Flèche ouverte en tirets'], 'message-self': ['Auto-message', 'Appel sur la même ligne de vie'],
+  exclude:['«exclude» — exclusion (convention)','Exclusion graphique'],transition:['Transition','Transition entre états'],flow:['Flux de contrôle','Flux entre activités'],
+  'message-simple':['Message simple','Flèche ouverte'],'message-timed':['Message minuté (convention)','Message avec horloge'],
+  'message-found':['Message trouvé','Origine inconnue'],'message-lost':['Message perdu','Destination inconnue'],
+  'message-create':['Message de création','Création d’une instance'],'message-delete':['Message de destruction','Destruction d’une instance'],
+  'message-balking':['Message dérobant (convention)','Message non bloquant'],'message-timeout':['Message avec délai (convention)','Délai dépassé'],
 };
 export const UML_DIAGRAMS = {
   classes: { label: 'Diagramme de classes', description: 'Structure, contrats et relations entre classes.', nodes: ['class','abstract-class','interface','note'], relations: ['association','directed-association','aggregation','composition','generalization','realization','dependency'] },
   objects: { label: "Diagramme d’objets", description: 'Instances et valeurs à un instant donné.', nodes: ['object','note'], relations: ['object-link','dependency'] },
   usecases: { label: "Cas d’utilisation", description: 'Acteurs, objectifs et périmètre du système.', nodes: ['actor','usecase','system','note'], relations: ['association','include','extend','generalization'] },
-  sequence: { label: 'Diagramme de séquence', description: 'Participants et échanges dans l’ordre du temps.', nodes: ['participant','activation','fragment','destruction','note'], relations: ['message-sync','message-async','message-return','message-self'] },
+  sequence: { label: 'Diagramme de séquence', description: 'Participants et échanges dans l’ordre du temps.', nodes: ['participant','activation','fragment','destruction','note'], relations: ['message-simple','message-sync','message-async','message-return','message-self','message-timed','message-found','message-lost','message-create','message-delete','message-balking','message-timeout'] },
+  states: {label:'États-transitions',description:'États et transitions.',nodes:['state','initial','final','decision','history','deep-history'],relations:['transition']},
+  activity: {label:'Activité',description:'Actions et flux.',nodes:['action','initial','final','flow-final','decision','fork','join','swimlane'],relations:['flow']},
+  structure: {label:'Structure et paquetages',description:'Conteneurs et composants.',nodes:['package','component','artifact','database'],relations:['dependency']},
 };
 export function umlPaletteMarkup() {
-  const names={note:'Note à coin plié',class:'Boîte à trois compartiments','abstract-class':'Boîte à trois compartiments — titre en italique',interface:'Boîte à compartiments — interface',object:'Boîte à en-tête souligné',actor:'Personnage',usecase:'Ellipse',system:'Cadre avec contenu',participant:'Boîte à ligne de vie',activation:'Barre d’activation',fragment:'Cadre à onglet et séparateur',destruction:'Croix de fin'};
   const button=(attrs,name,svg)=>`<button type="button" class="shape-icon-button" ${attrs} aria-label="${esc(name)}" title="${esc(name)}">${svg}</button>`;
-  const nodes=['note','class','object','abstract-class','interface','actor','usecase','system','participant','activation','fragment','destruction'];
+  const nodes=UML_NODE_KINDS;
   return `<section id="shape-library" aria-label="Bibliothèque de formes"><h2 class="shape-section-title">Formes</h2><div class="shape-icon-grid" role="group" aria-label="Insérer une forme">
-    ${button('id="entity"','Boîte à en-tête et séparateur',shapeIcon('entity'))}
-    ${nodes.map(kind=>button(`data-uml-node="${kind}"`,names[kind],shapeIcon(kind))).join('')}
-    ${button('id="association"','Ellipse avec séparateur',shapeIcon('association'))}
+    ${button('id="entity"','Entité / table — MCD / MLD',shapeIcon('entity'))}
+    ${nodes.map(kind=>button(`data-uml-node="${kind}"`,NODE_LABELS[kind][0],shapeIcon(kind))).join('')}
+    ${button('id="association"','Association — MCD',shapeIcon('association'))}
     </div><h2 class="shape-section-title">Connexions</h2><div class="shape-icon-grid connection-icon-grid" role="group" aria-label="Insérer une connexion">
     ${button('id="relation"','Lien avec cardinalités',shapeIcon('relation'))}
-    ${Object.keys(RELATION_LABELS).map(kind=>button(`data-uml-relation="${kind}"`,`${RELATION_LABELS[kind][0]} — ${RELATION_LABELS[kind][1]}`,relationPreview(kind))).join('')}
+    ${Object.keys(RELATION_LABELS).map(kind=>button(`data-uml-relation="${kind}"`,RELATION_LABELS[kind][0],relationPreview(kind))).join('')}
     </div></section>`;
 }
 
@@ -68,14 +79,17 @@ export function mountUmlUi({ getPage, isLocked, onSave, onCreate, beforeOpen = (
     select.value=items.some(e=>e.id===selected)?selected:fallback;
   }
   function relationFields(kind, values = {}) {
+    $('uml-source').disabled=false;
     const sequence=kind.startsWith('message-');
-    const targets=nodeOptions(e=>sequence?e.umlKind==='participant':['include','extend'].includes(kind)?e.umlKind==='usecase':kind==='object-link'?e.umlKind==='object':!['system','fragment','activation','destruction','note'].includes(e.umlKind));
+    const targets=nodeOptions(e=>sequence?e.umlKind==='participant':['include','extend','exclude'].includes(kind)?e.umlKind==='usecase':kind==='object-link'?e.umlKind==='object':!['system','fragment','activation','destruction','note'].includes(e.umlKind));
     choices($('uml-source'),targets,values.sourceId,targets[kind==='message-return'?1:0]?.id||'');
     choices($('uml-target'),targets,values.targetId,kind==='message-return'||kind==='message-self'?targets[0]?.id||'':targets[1]?.id||'');
     if(!values.sourceId&&!values.targetId&&targets.length<2&&kind!=='message-self'){$('uml-source').value='';$('uml-target').value='';}
+    if(kind==='message-found'){$('uml-source').value='';$('uml-source').disabled=true;$('uml-target').value=values.targetId||targets[0]?.id||'';}
+    if(kind==='message-lost'){$('uml-target').value='';$('uml-source').value=values.sourceId||targets[0]?.id||'';}
     show('uml-multiplicities',['association','directed-association','aggregation','composition'].includes(kind));
     show('uml-offset-field',sequence);
-    $('uml-target').disabled=kind==='message-self';
+    $('uml-target').disabled=['message-self','message-lost'].includes(kind);
     if(kind==='message-self')$('uml-target').value=$('uml-source').value;
     $('uml-form-hint').textContent=RELATION_LABELS[kind][1]+(['aggregation','composition'].includes(kind)?'. Le départ représente le tout, l’arrivée la partie.':sequence?'. Choisissez les participants puis la position verticale du message.':'. La pointe de flèche est du côté de l’arrivée.');
   }
@@ -120,7 +134,7 @@ export function mountUmlUi({ getPage, isLocked, onSave, onCreate, beforeOpen = (
       let element;
       if(relation){
         const sourceId=$('uml-source').value||null,targetId=kind==='message-self'?sourceId:$('uml-target').value||null;
-        if(Boolean(sourceId)!==Boolean(targetId))throw new Error('Choisissez les deux extrémités, ou laissez les deux en placement libre.');
+        if(!['message-found','message-lost'].includes(kind)&&Boolean(sourceId)!==Boolean(targetId))throw new Error('Choisissez les deux extrémités, ou laissez les deux en placement libre.');
         if(sourceId===targetId&&sourceId&&kind!=='message-self')throw new Error('Choisissez deux éléments distincts. Utilisez Auto-message pour un appel à soi-même.');
         const values={kind,name:$('uml-name-input').value,left:$('uml-left').disabled?'':$('uml-left').value,right:$('uml-right').disabled?'':$('uml-right').value,sourceId,targetId,offset:Number($('uml-offset').value)};
         element=existing?updateUmlRelation(existing,values):createUmlRelation(values);
@@ -140,8 +154,18 @@ export function mountUmlUi({ getPage, isLocked, onSave, onCreate, beforeOpen = (
 
 function relationPreview(kind) {
   if(kind==='message-self')return '<svg viewBox="0 0 48 24" aria-hidden="true"><path d="M8 4h26v16H8m6-5-6 5 6 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
-  const dashed=['realization','dependency','include','extend','message-return'].includes(kind);
-  const triangle=['generalization','realization','message-sync'].includes(kind);
+  const extra={
+    'message-found':'<circle cx="5" cy="12" r="3" fill="currentColor"/>',
+    'message-lost':'<circle cx="42" cy="12" r="3" fill="currentColor"/>',
+    'message-delete':'<path d="m36 6 10 12m0-12L36 18" stroke="currentColor" stroke-width="1.5"/>',
+    'message-create':'<path d="M22 2v6m-3-3h6" stroke="currentColor" stroke-width="1.2"/>',
+    'message-timed':'<circle cx="22" cy="5" r="4" fill="white" stroke="currentColor"/><path d="M22 2v3h2" fill="none" stroke="currentColor"/>',
+    'message-balking':'<path d="M31 7v10" stroke="currentColor" stroke-width="1.5"/>',
+    'message-timeout':'<path d="M19 1h7l-7 7h7z" fill="none" stroke="currentColor"/>',
+    exclude:'<path d="m21 4 6 5m0-5-6 5" stroke="currentColor"/>',
+  }[kind]||'';
+  const dashed=['realization','dependency','include','extend','exclude','message-return','message-create','message-timeout'].includes(kind);
+  const triangle=['generalization','realization','message-sync','transition','flow'].includes(kind);
   const diamond=['aggregation','composition'].includes(kind);
-  return `<svg viewBox="0 0 48 24" aria-hidden="true"><path d="M4 12H42" fill="none" stroke="currentColor" stroke-width="1.5"${dashed?' stroke-dasharray="4 3"':''}/>${diamond?`<path d="m4 12 8-5 8 5-8 5z" stroke="currentColor" fill="${kind==='composition'?'currentColor':'white'}"/>`:triangle?`<path d="m42 12-10-6v12z" stroke="currentColor" fill="${kind==='message-sync'?'currentColor':'white'}"/>`:['association','object-link'].includes(kind)?'':'<path d="m34 6 8 6-8 6" fill="none" stroke="currentColor" stroke-width="1.5"/>'}</svg>`;
+  return `<svg viewBox="0 0 48 24" aria-hidden="true"><path d="M4 12H42" fill="none" stroke="currentColor" stroke-width="1.5"${dashed?' stroke-dasharray="4 3"':''}/>${extra}${diamond?`<path d="m4 12 8-5 8 5-8 5z" stroke="currentColor" fill="${kind==='composition'?'currentColor':'white'}"/>`:triangle?`<path d="m42 12-10-6v12z" stroke="currentColor" fill="${['message-sync','transition','flow'].includes(kind)?'currentColor':'white'}"/>`:['association','object-link','message-lost','message-delete'].includes(kind)?'':'<path d="m34 6 8 6-8 6" fill="none" stroke="currentColor" stroke-width="1.5"/>'}</svg>`;
 }

@@ -85,7 +85,7 @@ function preserveChildren(group, next) {
     if (rowIndex < 0) roleCounts.set(child.role, roleIndex + 1);
     const previous = rowIndex >= 0 ? group.children.find(c => c.role === child.role && c.rowId === rowId)
       : group.children.filter(c => c.role === child.role && !c.rowId)[roleIndex];
-    return { ...child, ...(rowId ? { rowId } : {}), ...(previous ? { id: previous.id, stroke: previous.stroke, strokeWidth: previous.strokeWidth,...Object.fromEntries(['bold','italic'].filter(key=>previous[key]!==undefined).map(key=>[key,previous[key]])) } : {}) };
+    return { ...child, ...(rowId ? { rowId } : {}), ...(previous ? { id: previous.id, stroke: previous.stroke, strokeWidth: previous.strokeWidth,...Object.fromEntries(['bold','italic','underline'].filter(key=>previous[key]!==undefined).map(key=>[key,previous[key]])) } : {}) };
   }) };
 }
 

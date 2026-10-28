@@ -17,8 +17,12 @@ export function emptyUml(kind,{relation=false,elements=[],preferred=[]}={}){
   const participants=elements.filter(e=>e.umlKind==='participant');
   const offset=Math.min(800,Math.max(90,...elements.filter(e=>e.relationKind?.startsWith('message-')).map(e=>e.offset||160))+70);
   if(relation){
+    if(['message-found','message-lost'].includes(kind)){
+      const participant=participants.find(e=>preferred.includes(e.id))||participants[0];
+      return createUmlRelation({kind,name:'',left:'',right:'',offset,...(participant?{[kind==='message-found'?'targetId':'sourceId']:participant.id}:{})});
+    }
     const sequence=kind.startsWith('message-');
-    const nodes=elements.filter(e=>isUmlNode(e)&&(sequence?e.umlKind==='participant':kind==='object-link'?e.umlKind==='object':['include','extend'].includes(kind)?e.umlKind==='usecase':!['system','fragment','activation','destruction','note'].includes(e.umlKind)));
+    const nodes=elements.filter(e=>isUmlNode(e)&&(sequence?e.umlKind==='participant':kind==='object-link'?e.umlKind==='object':['include','extend','exclude'].includes(kind)?e.umlKind==='usecase':!['system','fragment','activation','destruction','note'].includes(e.umlKind)));
     const picked=nodes.filter(e=>preferred.includes(e.id)),ends=picked.length>=2?picked:nodes;
     const attached=kind==='message-self'?ends.length>0:ends.length>=2;
     const reverse=kind==='message-return';
@@ -33,7 +37,7 @@ export function diagramActions(group,selected){
   if(['Entité BDD','Association BDD'].includes(group?.label)){
     actions.push({action:'add-attribute',label:'＋ Attribut'});
     if(group.children.some(c=>c.id===selected&&c.rowId))actions.push({action:'remove-row',label:'− Ligne'});
-  }else if(isUmlNode(group)&&['class','abstract-class','interface','object','note'].includes(group.umlKind)){
+  }else if(isUmlNode(group)&&['class','abstract-class','interface','object','state','note'].includes(group.umlKind)){
     actions.push({action:'add-attribute',label:group.umlKind==='note'?'＋ Ligne':'＋ Attribut'});
     if(['class','abstract-class','interface'].includes(group.umlKind))actions.push({action:'add-operation',label:'＋ Méthode'});
   }

@@ -12,6 +12,17 @@ export function shapeIcon(kind) {
   else if(kind==='destruction')body='<path d="M16 2v13" stroke-dasharray="3 3"/><path d="m10 16 12 12m0-12L10 28"/>';
   else if(kind==='fragment')body=box+'<path d="M4 11h9l3-3V4M4 19h24" stroke-dasharray="3 2"/>';
   else if(kind==='system')body=box+'<ellipse cx="16" cy="13" rx="7" ry="3"/><ellipse cx="16" cy="22" rx="7" ry="3"/>';
+  else if(kind==='package')body='<path d="M3 10V4h12v6M3 10h26v19H3z"/>';
+  else if(kind==='state')body='<rect x="3" y="6" width="26" height="20" rx="5"/><path d="M3 14h26"/>';
+  else if(kind==='action')body='<rect x="3" y="7" width="26" height="18" rx="9"/>';
+  else if(kind==='decision')body='<path d="m16 3 13 13-13 13L3 16z"/>';
+  else if(['initial','final','flow-final','history','deep-history'].includes(kind))body=`<circle cx="16" cy="16" r="11"${kind==='initial'?' fill="currentColor"':''}/>`+(kind==='final'?'<circle cx="16" cy="16" r="7" fill="currentColor"/>':kind==='flow-final'?'<path d="m10 10 12 12m0-12L10 22"/>':['history','deep-history'].includes(kind)?'<path d="M11 10v12m9-12v12m-9-6h9"/>'+(kind==='deep-history'?'<path d="m24 5 3 5m-5-2h6m-1-3-3 5"/>':''):'');
+  else if(kind==='fork')body='<path d="M16 2v8M7 22v8m18-8v8"/><rect x="3" y="11" width="26" height="9" rx="1" fill="currentColor"/>';
+  else if(kind==='join')body='<path d="M2 7h8M2 25h8m12-9h8"/><rect x="11" y="3" width="9" height="26" rx="1" fill="currentColor"/>';
+  else if(kind==='swimlane')body=box+'<path d="M4 10h24M12 10v18M20 10v18"/>';
+  else if(kind==='component')body='<path d="M8 4h21v24H8V19m0-6v-3"/><path d="M3 9h10v5H3zM3 19h10v5H3z"/>';
+  else if(kind==='artifact')body='<path d="M6 3h15l6 6v20H6ZM21 3v7h6"/>';
+  else if(kind==='database')body='<ellipse cx="16" cy="7" rx="12" ry="4"/><path d="M4 7v18c0 5 24 5 24 0V7M4 16c0 5 24 5 24 0"/>';
   else body='<path d="M3 24h9V8h17m-5-5 5 5-5 5"/><circle cx="3" cy="24" r="2" fill="white"/>';
   return `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 }

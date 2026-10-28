@@ -28,8 +28,9 @@ test('chaque bouton de forme possède un nom accessible et une infobulle, sans t
 test('la note et les boîtes à compartiments sont identifiables par leur description de forme', () => {
   const html = umlPaletteMarkup();
   assert.match(html, /aria-label="Note[^"]*"/);
-  assert.match(html, /aria-label="Boîte à en-tête et séparateur"/);
-  assert.match(html, /aria-label="Boîte à trois compartiments"/);
+  assert.match(html, /aria-label="Entité \/ table — MCD \/ MLD"/);
+  assert.match(html, /aria-label="Classe"/);
+  assert.match(html, /aria-label="Objet \/ instance"/);
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]);
   assert.equal(new Set(ids).size, ids.length);
 });

@@ -44,7 +44,9 @@ Le dessin exige un pointeur ; les formulaires, l'ajout de texte et les commandes
 
 ## Sauvegarde et suivi
 
-La bibliothèque unique affiche toutes les formes complexes et connexions sous forme d'icônes, sans onglet ni sélecteur de diagramme. Survoler une icône pour lire sa description : note à coin plié, boîte à en-tête et séparateur, boîte à trois compartiments, ellipse, personnage, ligne de vie, etc. Les boutons sont aussi nommés pour les lecteurs d'écran et activables au clavier. Cliquer insère un élément vide, à remplir directement sur la feuille. Les attributs et méthodes acceptent une ligne par entrée. Les relations attachées suivent leurs éléments ; les messages, activations et destructions se positionnent sur les lignes de vie. Voir [docs/ICON_PALETTE.md](docs/ICON_PALETTE.md).
+La bibliothèque unique expose 55 formes et connexions sous forme d'icônes, sans onglet ni sélecteur de diagramme. Les infobulles utilisent les vrais noms : classe, objet, cas d'utilisation, paquetage, état, activité, entité/table, etc. Les boutons sont aussi nommés pour les lecteurs d'écran et activables au clavier. Cliquer insère un élément vide, à remplir directement sur la feuille. Les attributs et méthodes acceptent une ligne par entrée. Les relations attachées suivent leurs éléments ; les messages, activations et destructions se positionnent sur les lignes de vie. Les variantes graphiques locales (exclusion, message minuté/dérobant/avec délai) sont identifiées comme conventions. Voir [docs/DIAGRAM_LIBRARY.md](docs/DIAGRAM_LIBRARY.md).
+
+L'éditeur de texte et son menu contextuel proposent gras, italique et souligné. `Ctrl/Cmd+B`, `Ctrl/Cmd+I` et `Ctrl/Cmd+U` basculent ces styles pendant la saisie. Le formatage concerne le champ entier ; texte et styles s'enregistrent ensemble et s'annulent ensemble. Les commandes d'alignement et de répartition disposent de leurs propres icônes.
 
 Sous les outils, **Style du tracé** ouvre les couleurs, l'épaisseur et les motifs plein, tirets, pointillés ou mixte avec aperçu. Les réglages modifient la sélection et les prochains tracés.
 

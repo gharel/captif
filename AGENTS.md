@@ -25,7 +25,7 @@ Préférer des fonctions pures et des changements ciblés. Ne pas ajouter de dé
 - Ne jamais écraser ou supprimer silencieusement une copie illisible. Valider les imports avant de remplacer la copie courante. Conserver les identifiants des composants et les références de leurs liens pendant l'édition.
 - Les opérations sur le document sont immuables et annulables. Une duplication ou une réorganisation constitue une action d'historique.
 - Les palettes ajoutent des composants vides sans fenêtre de création. Éditer les champs directement sur la feuille ; les réglages avancés restent facultatifs.
-- La bibliothèque expose toutes les formes et connexions par icônes géométriques : aucun onglet BDD/UML, sélecteur de diagramme ni nom visible sous les icônes. Descriptions de formes en infobulle et `aria-label`. Voir `docs/ICON_PALETTE.md`.
+- La bibliothèque expose toutes les formes et connexions par icônes géométriques : aucun onglet BDD/UML, sélecteur de diagramme ni nom visible sous les icônes. Utiliser les vrais noms UML/BDD en infobulle et `aria-label` (classe, objet, paquetage…). Les conventions graphiques locales sont identifiées comme telles. Voir `docs/ICON_PALETTE.md` et `docs/DIAGRAM_LIBRARY.md`.
 - BDD : en-tête crème, attributs sans quadrillage, types gris, clés discrètes. UML : compartiments lisibles et notations conservées. Se référer à `docs/DIAGRAM_APPEARANCE.md` et aux références de l'utilisateur.
 - Les formes et leurs textes restent groupés. Les connecteurs suivent leurs extrémités ; leurs coudes manuels survivent à la sauvegarde.
 - Redimensionner un texte libre change sa zone et ses retours à la ligne, pas sa police. MAJ contraint les proportions ; ALT permet la duplication ou la création depuis le centre selon le geste.

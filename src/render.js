@@ -26,13 +26,14 @@ export function elementSvg(e, selected = false,editHints=false) {
   if (e.type === 'group') {
     const themedChildren=e.children.map(child=>{
       const next={...child};
+      if(child.type==='rect'&&child.role==='uml-frame'&&['state','action'].includes(e.umlKind))next._radius=e.umlKind==='action'?Math.min(child.height/2,32):12;
       if(child.role==='header')next.fill='#fff6d5';
       if(child.type==='rect'&&child.role==='uml-decoration'&&child.width===e.width&&child.fill!=='none')next.fill=e.umlKind==='object'?'#f0eaff':'#e8efff';
       if(child.type==='ellipse'&&e.umlKind==='usecase')next.fill='#ede5ff';
       if(child.type==='ellipse'&&e.label==='Association BDD')next.fill='#fff6d5';
       if(['entity-name','uml-name','association-name'].includes(child.role)){
         if(['entity-name','association-name'].includes(child.role)||['class','abstract-class','interface','object','participant','usecase'].includes(e.umlKind))next._centerX=e.x+e.width/2;
-        if(child.role==='entity-name'||['class','abstract-class','interface','object'].includes(e.umlKind))next.bold=true;
+        if((child.role==='entity-name'||['class','abstract-class','interface','object'].includes(e.umlKind))&&child.bold===undefined)next.bold=true;
       }
       if(['attribute-type','attribute-nullable','column-label'].includes(child.role))next.stroke='#8b909b';
       if(child.role==='attribute-key')next.stroke='#9b7622';
@@ -43,7 +44,7 @@ export function elementSvg(e, selected = false,editHints=false) {
   }
   if (e.type === 'rect') inner = e._header
     ? `<path d="M${e.x+5},${e.y} H${e.x+e.width-5} Q${e.x+e.width},${e.y} ${e.x+e.width},${e.y+5} V${e.y+e.height} H${e.x} V${e.y+5} Q${e.x},${e.y} ${e.x+5},${e.y}Z" fill="${fill}" stroke="${color}" stroke-width="${e.strokeWidth||1}"/>`
-    : `<rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" rx="${['frame','uml-frame'].includes(e.role)?5:2}" ${style}/>`;
+    : `<rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" rx="${e._radius??(['frame','uml-frame'].includes(e.role)?5:2)}" ${style}/>`;
   if (e.type === 'ellipse') inner = `<ellipse cx="${e.x + e.width / 2}" cy="${e.y + e.height / 2}" rx="${e.width / 2}" ry="${e.height / 2}" ${style}/>`;
   if (e.type === 'line' || e.type === 'arrow') {
     const points=e.route?.length?e.route:[{x:e.x,y:e.y},{x:e.x2,y:e.y2}],d=points.map((p,i)=>`${i?'L':'M'}${p.x},${p.y}`).join(' ');

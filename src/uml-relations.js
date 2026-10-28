@@ -1,9 +1,9 @@
 import { W, H, elementBounds, translateElement } from './geometry.js';
 
-export const UML_RELATION_KINDS = ['association','directed-association','aggregation','composition','generalization','realization','dependency','object-link','include','extend','message-sync','message-async','message-return','message-self'];
+export const UML_RELATION_KINDS = ['association','directed-association','aggregation','composition','generalization','realization','dependency','object-link','include','extend','exclude','transition','flow','message-simple','message-sync','message-async','message-return','message-self','message-timed','message-found','message-lost','message-create','message-delete','message-balking','message-timeout'];
 const uid = () => crypto.randomUUID();
 const ink = '#334155';
-const dashed = new Set(['realization','dependency','include','extend','message-return']);
+const dashed = new Set(['realization','dependency','include','extend','exclude','message-return','message-create','message-timeout']);
 const sequence = kind => kind.startsWith('message-');
 const value = (text, limit = 60) => {
   text = String(text ?? '').trim();
@@ -29,9 +29,30 @@ function decoration(kind,p,q) {
   const ux=(q.x-p.x)/length,uy=(q.y-p.y)/length,nx=-uy,ny=ux;
   const at=(origin,along,across)=>({x:clamp(origin.x+ux*along+nx*across,16,W-16),y:clamp(origin.y+uy*along+ny*across,20,H-20)});
   if (kind==='aggregation'||kind==='composition') return child('pen','uml-marker',{...p,fill:kind==='aggregation'?'#ffffff':ink,points:[p,at(p,12,7),at(p,24,0),at(p,12,-7),p]});
-  if (['generalization','realization','message-sync'].includes(kind)) return child('pen','uml-marker',{...q,fill:kind==='message-sync'?ink:'#ffffff',points:[q,at(q,-16,7),at(q,-16,-7),q]});
-  if (['directed-association','dependency','include','extend','message-async','message-return','message-self'].includes(kind)) return child('pen','uml-marker',{...q,fill:'none',points:[at(q,-12,6),q,at(q,-12,-6)]});
+  if (['generalization','realization','message-sync','transition','flow'].includes(kind)) return child('pen','uml-marker',{...q,fill:['message-sync','transition','flow'].includes(kind)?ink:'#ffffff',points:[q,at(q,-16,7),at(q,-16,-7),q]});
+  if (['directed-association','dependency','include','extend','exclude','message-simple','message-async','message-return','message-self','message-timed','message-found','message-create','message-balking','message-timeout'].includes(kind)) return child('pen','uml-marker',{...q,fill:'none',points:[at(q,-12,6),q,at(q,-12,-6)]});
   return null;
+}
+
+/** Optional message notation; graphical conventions, never a timing engine. */
+function messageSymbols(kind,p,q) {
+  const length=Math.hypot(q.x-p.x,q.y-p.y)||1,ux=(q.x-p.x)/length,uy=(q.y-p.y)/length;
+  const at=(along,across=0)=>({x:clamp(p.x+ux*along-uy*across,16,W-16),y:clamp(p.y+uy*along+ux*across,20,H-20)});
+  const pen=points=>child('pen','uml-marker',{...points[0],points,fill:'none'});
+  const circle=(point,size,fill)=>child('ellipse','uml-marker',{x:point.x-size/2,y:point.y-size/2,width:size,height:size,fill});
+  if(kind==='message-found')return [circle(p,10,ink)];
+  if(kind==='message-lost')return [circle(q,10,ink)];
+  if(kind==='message-delete')return [pen([at(length-8,-8),at(length+8,8)]),pen([at(length-8,8),at(length+8,-8)])];
+  if(kind==='message-timed'){
+    const c=at(Math.min(length/2,48),-18);
+    return [circle(c,14,'#ffffff'),pen([{x:c.x,y:c.y-4},c,{x:c.x+4,y:c.y}])];
+  }
+  if(kind==='message-balking')return [pen([at(length-23,-7),at(length-23,7)])];
+  if(kind==='message-timeout'){
+    const along=Math.min(length/2,48);
+    return [pen([at(along-6,-24),at(along+6,-24),at(along-6,-10),at(along+6,-10),at(along-6,-24)])];
+  }
+  return [];
 }
 
 function geometry(kind,name,left,right,p,q,self=false,dashOverride) {
@@ -39,12 +60,12 @@ function geometry(kind,name,left,right,p,q,self=false,dashOverride) {
   const lines=self ? [line(p.x,p.y,q.x,p.y,dash),line(q.x,p.y,q.x,q.y,dash),line(q.x,q.y,p.x,q.y,dash)] : [line(p.x,p.y,q.x,q.y,dash)];
   const finalPoint=self?{x:p.x,y:q.y}:q;
   const marker=decoration(kind,self?{x:q.x,y:q.y}:p,finalPoint);
-  const stereotype=kind==='include'?'«include»':kind==='extend'?'«extend»':'';
+  const stereotype=['include','extend','exclude'].includes(kind)?`«${kind}»`:'';
   const text=stereotype ? `${stereotype}${name ? ` ${name}`:''}` : name;
   const vertical=!self&&Math.abs(q.y-p.y)>Math.abs(q.x-p.x);
   const nameX=clamp(vertical?(p.x+q.x)/2+(left||right?70:18):(p.x+q.x)/2-text.length*4,24,Math.max(24,W-30-text.length*8));
   const nameY=clamp(vertical?(p.y+q.y)/2+4:Math.min(p.y,q.y)-12,38,H-30);
-  return [...lines,...(marker?[marker]:[]),label('uml-relation-name',nameX,nameY,text),
+  return [...lines,...(marker?[marker]:[]),...messageSymbols(kind,p,finalPoint),label('uml-relation-name',nameX,nameY,text),
     label('uml-source-label',clamp(vertical?p.x-left.length*8-12:p.x+(q.x>=p.x?10:-left.length*8-10),24,W-60),clamp(vertical?p.y+(q.y>=p.y?18:-8):p.y+23,38,H-25),left),
     label('uml-target-label',clamp(vertical?finalPoint.x+12:finalPoint.x-(q.x>=p.x?right.length*8+10:-10),24,W-60),clamp(vertical?finalPoint.y+(q.y>=p.y?-6:18):finalPoint.y+23,38,H-25),right)];
 }
@@ -75,7 +96,7 @@ export function createUmlRelation({kind='association',name='',left='',right='',s
 export function isUmlRelation(group) { return group?.type==='group'&&group.umlKind==='relation'&&group.label==='Relation UML'; }
 export function readUmlRelation(group) {
   const text=role=>group.children?.find(c=>c.role===role)?.text||'';
-  return {kind:group.relationKind||'association',name:text('uml-relation-name').replace(/^«(?:include|extend)»\s*/,''),left:text('uml-source-label'),right:text('uml-target-label'),sourceId:group.sourceId||null,targetId:group.targetId||null,offset:group.offset??160};
+  return {kind:group.relationKind||'association',name:text('uml-relation-name').replace(/^«(?:include|extend|exclude)»\s*/,''),left:text('uml-source-label'),right:text('uml-target-label'),sourceId:group.sourceId||null,targetId:group.targetId||null,offset:group.offset??160};
 }
 export function updateUmlRelation(group,patch) {
   const next=createUmlRelation({...readUmlRelation(group),...patch,x:group.x,y:group.y-29});
@@ -114,11 +135,24 @@ export function resolveUmlRelations(page) {
     return {...group,children:group.children.map(child=>child.type==='line'&&child.dash?{...child,y2:Math.min(child.y2,...ends)}:child)};
   });
   return {...page,elements:elements.map(group=>{
-    if(!isUmlRelation(group)||!group.sourceId||!group.targetId)return group;
+    if(!isUmlRelation(group))return group;
+    const {kind,name,left,right,offset}=readUmlRelation(group);
+    const oneFound=kind==='message-found'&&!group.sourceId&&group.targetId;
+    const oneLost=kind==='message-lost'&&group.sourceId&&!group.targetId;
+    if(oneFound||oneLost){
+      const participant=elements.find(e=>e.id===(oneFound?group.targetId:group.sourceId)&&e.umlKind==='participant');
+      if(!participant)return group;
+      const y=clamp(participant.y+44+offset,participant.y+70,Math.min(H-90,participant.y+participant.height-30));
+      const known={x:participant.x+participant.width/2,y};
+      const direction=oneFound?(known.x-100>=24?-1:1):(known.x+100<=W-24?1:-1);
+      const unknown={x:known.x+direction*100,y};
+      const p=oneFound?unknown:known,q=oneFound?known:unknown;
+      return withBounds(group,preserve(group,geometry(kind,name,left,right,p,q,false,group.dash)));
+    }
+    if(!group.sourceId||!group.targetId)return group;
     const source=elements.find(e=>e.id===group.sourceId&&e.type==='group'&&!isUmlRelation(e));
     const target=elements.find(e=>e.id===group.targetId&&e.type==='group'&&!isUmlRelation(e));
     if(!source||!target)return group;
-    const {kind,name,left,right,offset}=readUmlRelation(group);
     const a=elementBounds(source),b=elementBounds(target);
     let p,q,self=false;
     if(sequence(kind)) {

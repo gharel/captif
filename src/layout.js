@@ -93,7 +93,7 @@ function makeAtoms(elements){
   const consumed=new Set(),atoms=[],boxes=elements.filter(isLayoutBox);
   // A system and its contents move as a unit. Pack the contents inside its fixed
   // boundary first, rather than moving its use cases into the outer page grid.
-  const systems=boxes.filter(e=>e.umlKind==='system').sort((a,b)=>a.width*a.height-b.width*b.height);
+  const systems=boxes.filter(e=>['system','package','swimlane'].includes(e.umlKind)).sort((a,b)=>a.width*a.height-b.width*b.height);
   for(const system of systems){
     const frame=elementBounds(system),content=boxes.filter(e=>e.id!==system.id&&!consumed.has(e.id)&&e.umlKind!=='system'&&e.umlKind!=='participant'&&inside(elementBounds(e),frame));
     const inner={x:frame.x+20,y:frame.y+56,width:frame.width-40,height:frame.height-76};

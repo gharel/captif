@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { UML_NODE_KINDS, createUmlNode, readUmlNode, updateUmlNode, isUmlNode } from '../src/uml-nodes.js';
 import { elementBounds, translateElement } from '../src/geometry.js';
 
-test('UML : les douze composants sont groupés et restent dans les limites utiles A4', () => {
-  assert.equal(UML_NODE_KINDS.length, 12);
+test('UML : tous les composants sont groupés et restent dans les limites utiles A4', () => {
+  assert.equal(new Set(UML_NODE_KINDS).size, UML_NODE_KINDS.length);
   for (const kind of UML_NODE_KINDS) {
     const node = createUmlNode(kind, { x: 740, y: 1080 });
     assert.equal(node.type, 'group');

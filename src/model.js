@@ -1,4 +1,6 @@
 export { translateElement, elementBounds } from './geometry.js';
+import { UML_NODE_KINDS } from './uml-nodes.js';
+import { UML_RELATION_KINDS } from './uml-relations.js';
 const TYPES = new Set(['rect', 'text', 'pen', 'ellipse', 'line', 'arrow', 'group']);
 const uid = () => globalThis.crypto.randomUUID();
 
@@ -151,11 +153,11 @@ export function validateDocument(value) {
           clean.label = string(element.label, 80);
           if (!['Classe UML', 'Entité BDD', 'Association BDD', 'Relation BDD', 'Élément UML', 'Relation UML'].includes(clean.label) || !Array.isArray(element.children) || element.children.length > 100) fail();
           if (element.umlKind !== undefined) {
-            if (!['class','abstract-class','interface','object','actor','usecase','system','participant','activation','fragment','destruction','note','relation'].includes(element.umlKind)) fail();
+            if (element.umlKind !== 'relation' && !UML_NODE_KINDS.includes(element.umlKind)) fail();
             clean.umlKind = element.umlKind;
           }
           if (element.relationKind !== undefined) {
-            if (!['association','directed-association','aggregation','composition','generalization','realization','dependency','object-link','include','extend','message-sync','message-async','message-return','message-self'].includes(element.relationKind)) fail();
+            if (!UML_RELATION_KINDS.includes(element.relationKind)) fail();
             clean.relationKind = element.relationKind;
           }
           if (element.offset !== undefined) clean.offset = number(element.offset, 80, 800);

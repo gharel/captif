@@ -1,6 +1,6 @@
 import { W, H } from './geometry.js';
 
-export const UML_NODE_KINDS = ['class', 'abstract-class', 'interface', 'object', 'actor', 'usecase', 'system', 'participant', 'activation', 'fragment', 'destruction', 'note'];
+export const UML_NODE_KINDS = ['class', 'abstract-class', 'interface', 'object', 'actor', 'usecase', 'system', 'participant', 'activation', 'fragment', 'destruction', 'note', 'package', 'state', 'action', 'initial', 'final', 'flow-final', 'decision', 'fork', 'join', 'history', 'deep-history', 'swimlane', 'component', 'artifact', 'database'];
 const uid = () => crypto.randomUUID();
 const color = '#303540';
 const defaults = { class: 'Classe', 'abstract-class': 'ClasseAbstraite', interface: 'Interface', object: 'instance', actor: 'Acteur', usecase: "Cas d’utilisation", system: 'Système', participant: 'Participant', activation: '', fragment: 'Fragment', destruction: '', note: 'Note' };
@@ -24,6 +24,7 @@ const rect = (x, y, width, height, fill = '#ffffff', extra = {}) => primitive('r
 const line = (x, y, x2, y2, extra = {}) => primitive('line', { role: 'uml-decoration', x, y, x2, y2, ...extra });
 const text = (role, x, y, value, fontSize = 14, extra = {}) => primitive('text', { role, x, y, text: value, fontSize, ...extra });
 const textWidth = (value, size) => Math.max(1, ...String(value).split('\n').map(line => line.length)) * size * .62;
+const compactKinds = new Set(['initial','final','flow-final','fork','join','history','deep-history']);
 
 export function isUmlNode(group) {
   return Boolean(group?.type === 'group' && (UML_NODE_KINDS.includes(group.umlKind) || group.label === 'Classe UML'));
@@ -31,7 +32,7 @@ export function isUmlNode(group) {
 
 export function createUmlNode(kind, options = {}) {
   if (!UML_NODE_KINDS.includes(kind)) throw new Error('Élément UML inconnu.');
-  const name = string(options.name, defaults[kind]);
+  const name = string(options.name, defaults[kind] ?? '');
   const stereotype = string(options.stereotype, '', 40);
   const attributes = lines(options.attributes, ['class', 'abstract-class', 'interface'].includes(kind) ? ['- attribut : Type'] : kind === 'object' ? ['attribut = valeur'] : kind === 'note' ? ['Votre commentaire'] : []);
   const operations = lines(options.operations, ['class', 'abstract-class', 'interface'].includes(kind) ? ['+ operation() : Type'] : []);
@@ -57,6 +58,15 @@ export function createUmlNode(kind, options = {}) {
   else if (kind === 'activation') { width = name?Math.max(110, textWidth(name, 12) + 12):20; nodeHeight = dimension(options.height, 110, 40, 1000); height = nodeHeight + (name?34:0); }
   else if (kind === 'fragment') { width = Math.max(dimension(options.width, 500, 280, 746), textWidth(condition, 13) + 40, textWidth(name, 13) + 100); height = dimension(options.height, 240, 120, 1063); }
   else if (kind === 'destruction') { width = name?Math.max(80, textWidth(name, 12) + 16):40; height = name?80:48; }
+  else if (kind === 'package') { width = Math.max(dimension(options.width, 280, 180, 746),textWidth(name,15)+32); height = dimension(options.height,180,90,1063); }
+  else if (kind === 'swimlane') { width = Math.max(dimension(options.width,250,160,746),textWidth(name,14)+28); height = dimension(options.height,380,120,1063); }
+  else if (kind === 'state') { width = Math.max(210,textWidth(name,15)+32,...attributes.map(a=>textWidth(a,13)+28));height=64+(attributes.length?Math.max(32,attributes.length*19.5+20):0); }
+  else if (kind === 'action') { width = Math.max(180,textWidth(name,15)+40);height=64; }
+  else if (kind === 'decision') { width = Math.max(112,textWidth(name,14)*1.6+32);height=Math.max(80,width*.6); }
+  else if (kind === 'component') { width = Math.max(220,textWidth(name,15)+64);height=100; }
+  else if (kind === 'artifact') { width = Math.max(190,textWidth(name,15)+38);height=110; }
+  else if (kind === 'database') { width = Math.max(180,textWidth(name,15)+36);height=100; }
+  else if (compactKinds.has(kind)) { width=Math.max(kind==='fork'?120:kind==='join'?12:40,name?textWidth(name,12)+16:0);nodeHeight=kind==='join'?120:kind==='fork'?12:40;height=nodeHeight+(name?28:0); }
   else { width = Math.max(280, textWidth(name, 16) + 36, ...attributes.map(a => textWidth(a, 14) + 36)); height = 68 + Math.max(1, attributes.length) * 21; }
   if (width > W - 48 || height > H - 60) throw new Error('Cet élément dépasse les dimensions utiles de la feuille.');
   const requestedX = options.x ?? 50, requestedY = options.y ?? 90;
@@ -90,6 +100,32 @@ export function createUmlNode(kind, options = {}) {
     const center = x + width / 2;
     children.push(line(center - 16, y + 8, center + 16, y + 40), line(center + 16, y + 8, center - 16, y + 40));
     if(name)children.push(text('uml-name', x + (width - textWidth(name, 12)) / 2, y + 66, name, 12));
+  } else if (kind === 'package') {
+    const tab=Math.min(width-24,Math.max(84,textWidth(name,15)+28));
+    children.push(rect(x,y+24,width,height-24),rect(x,y,tab,24),text('uml-name',x+12,y+17,name,15));
+  } else if (kind === 'swimlane') {
+    children.push(rect(x,y,width,height,'none'),line(x,y+36,x+width,y+36),text('uml-name',x+14,y+24,name,14));
+  } else if (kind === 'state' || kind === 'action') {
+    children.push(rect(x,y,width,height),text('uml-name',x+(width-textWidth(name,15))/2,y+38,name,15));
+    if(kind==='state'&&attributes.length)children.push(line(x,y+56,x+width,y+56),text('uml-attributes',x+14,y+79,attributes.join('\n'),13));
+  } else if (kind === 'decision') {
+    children.push(primitive('pen',{role:'uml-frame',x,y,fill:'#ffffff',points:[{x:x+width/2,y},{x:x+width,y:y+height/2},{x:x+width/2,y:y+height},{x,y:y+height/2},{x:x+width/2,y}]}),text('uml-name',x+(width-textWidth(name,14))/2,y+height/2+5,name,14));
+  } else if (kind === 'component') {
+    children.push(rect(x+12,y,width-12,height),rect(x,y+22,24,16),rect(x,y+60,24,16),text('uml-name',x+40,y+height/2+5,name,15));
+  } else if (kind === 'artifact') {
+    children.push(primitive('pen',{role:'uml-frame',x,y,fill:'#ffffff',points:[{x,y},{x:x+width-22,y},{x:x+width,y:y+22},{x:x+width,y:y+height},{x,y:y+height},{x,y}]}),line(x+width-22,y,x+width-22,y+22),line(x+width-22,y+22,x+width,y+22),text('uml-name',x+14,y+height/2+5,name,15));
+  } else if (kind === 'database') {
+    children.push(rect(x,y+10,width,height-20),primitive('ellipse',{role:'uml-decoration',x,y:y+height-20,width,height:20,fill:'#ffffff'}),primitive('ellipse',{role:'uml-decoration',x,y,width,height:20,fill:'#ffffff'}),text('uml-name',x+(width-textWidth(name,15))/2,y+height/2+7,name,15));
+  } else if (compactKinds.has(kind)) {
+    const cx=x+width/2;
+    if(kind==='fork'||kind==='join')children.push(rect(kind==='join'?cx-6:x,y,kind==='join'?12:width,nodeHeight,color,{role:'uml-marker'}));
+    else{
+      children.push(primitive('ellipse',{role:kind==='initial'?'uml-marker':'uml-frame',x:cx-20,y,width:40,height:40,fill:kind==='initial'?color:'#ffffff'}));
+      if(kind==='final')children.push(primitive('ellipse',{role:'uml-marker',x:cx-13,y:y+7,width:26,height:26,fill:color}));
+      if(kind==='flow-final')children.push(line(cx-10,y+10,cx+10,y+30),line(cx+10,y+10,cx-10,y+30));
+      if(kind==='history'||kind==='deep-history')children.push(text('uml-decoration',cx-(kind==='history'?5:9),y+26,kind==='history'?'H':'H*',16));
+    }
+    if(name)children.push(text('uml-name',x+(width-textWidth(name,12))/2,y+nodeHeight+20,name,12));
   } else {
     children.push(rect(x, y, width, height, '#fff9dc'), line(x + width - 22, y, x + width - 22, y + 22), line(x + width - 22, y + 22, x + width, y + 22), text('uml-name', x + 14, y + 28, name, 16), text('uml-attributes', x + 14, y + 57, attributes.join('\n'), 14));
   }
@@ -127,6 +163,6 @@ export function updateUmlNode(group, patch) {
   return { ...next, id: group.id, stroke: group.stroke, strokeWidth: group.strokeWidth, ...(group.dash ? {dash: group.dash} : {}), children: next.children.map(child => {
     const index = seen.get(child.role) || 0; seen.set(child.role, index + 1);
     const previous = group.children.filter(candidate => candidate.role === child.role)[index];
-    return previous ? { ...child, id: previous.id, stroke: previous.stroke, strokeWidth: previous.strokeWidth,...(previous.dash?{dash:previous.dash}:{}),...Object.fromEntries(['bold','italic'].filter(key=>previous[key]!==undefined).map(key=>[key,previous[key]])) } : child;
+    return previous ? { ...child, id: previous.id, stroke: previous.stroke, strokeWidth: previous.strokeWidth,...(previous.dash?{dash:previous.dash}:{}),...Object.fromEntries(['bold','italic','underline'].filter(key=>previous[key]!==undefined).map(key=>[key,previous[key]])) } : child;
   }) };
 }

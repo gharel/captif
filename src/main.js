@@ -16,6 +16,7 @@ import { DEFAULT_DRAWING_STYLE,applyDrawingStyle } from './drawing-style.js';
 import { emptyBdd,emptyUml,isDiagram,editableDiagramText,editDiagramRows,diagramChoices,diagramPlaceholder } from './diagram-inline.js';
 import { alignElements,autoLayout,isLayoutBox } from './layout.js';
 import { editableConnector,resolveDiagramConnections } from './diagram-connections.js';
+import { TEXT_STYLES, textFormatMarkup, toggleTextFormat, textStyleIcon, alignmentIcon } from './editor-controls.js';
 
 const loaded = loadCopy();
 let history = createHistory(loaded.document || createDocument());
@@ -148,18 +149,18 @@ app.innerHTML = `
   <section id="settings-popover" popover aria-labelledby="settings-title"><div class="settings-heading"><h2 id="settings-title">Paramètres</h2><button id="settings-close" class="tool" type="button" aria-label="Fermer les paramètres">${icon('close')}</button></div><label class="settings-grid-option" for="grid"><span><strong>Points de repère</strong><small>Afficher la grille sur la feuille</small></span><input id="grid" type="checkbox" checked /></label></section>
   <dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><h2 id="confirm-title">Confirmer cette action</h2><p id="confirm-message"></p><div class="dialog-actions"><button class="button secondary" value="cancel" autofocus>Annuler</button><button class="button primary" value="confirm">Confirmer</button></div></form></dialog>
   <input type="file" id="file-input" accept="application/json,.json" hidden />
-  <div id="text-context" class="text-context" role="toolbar" aria-label="Options du texte sélectionné" hidden><button id="context-edit" type="button" title="Modifier le texte">${icon('pen')} Modifier</button><span class="context-divider"></span><label><span class="sr-only">Taille du texte sélectionné</span><select id="context-size">${[12,14,16,18,20,24,28,32].map(size => `<option value="${size}">${size} px</option>`).join('')}</select></label><button id="context-bold" type="button" aria-label="Gras" aria-pressed="false" title="Gras"><strong>G</strong></button><button id="context-italic" type="button" aria-label="Italique" aria-pressed="false" title="Italique"><em>I</em></button><label class="context-color"><span class="sr-only">Couleur du texte sélectionné</span><input id="context-color" type="color" value="${color}" /></label><button id="context-delete" type="button" aria-label="Supprimer ce texte" title="Supprimer ce texte">${icon('trash')}</button></div>
+  <div id="text-context" class="text-context" role="toolbar" aria-label="Options du texte sélectionné" hidden><button id="context-edit" type="button" title="Modifier le texte">${icon('pen')} Modifier</button><span class="context-divider"></span><label><span class="sr-only">Taille du texte sélectionné</span><select id="context-size">${[12,14,16,18,20,24,28,32].map(size => `<option value="${size}">${size} px</option>`).join('')}</select></label><button id="context-bold" type="button" aria-label="Gras" aria-pressed="false" title="Gras">${textStyleIcon('bold')}</button><button id="context-italic" type="button" aria-label="Italique" aria-pressed="false" title="Italique">${textStyleIcon('italic')}</button><button id="context-underline" type="button" aria-label="Souligné" aria-pressed="false" title="Souligné">${textStyleIcon('underline')}</button><label class="context-color"><span class="sr-only">Couleur du texte sélectionné</span><input id="context-color" type="color" value="${color}" /></label><button id="context-delete" type="button" aria-label="Supprimer ce texte" title="Supprimer ce texte">${icon('trash')}</button></div>
   <dialog id="bdd-dialog" aria-labelledby="bdd-title"><form method="dialog" id="bdd-form"><span class="eyebrow">MODÉLISATION DE DONNÉES</span><h2 id="bdd-title">Configurer l'entité</h2><label class="field-label" for="bdd-name">Nom</label><input id="bdd-name" maxlength="60" required /><div id="bdd-attributes"><div class="attributes-heading"><strong>Attributs</strong><span>PK : clé primaire · FK : clé étrangère</span></div><div class="attributes-scroll"><table class="attribute-table"><thead><tr><th>Clé</th><th>Attribut</th><th>Type</th><th>NULL</th><th><span class="sr-only">Supprimer</span></th></tr></thead><tbody id="attribute-rows"></tbody></table></div><button id="add-attribute" type="button" class="button secondary mt-3">＋ Ajouter un attribut</button></div><div id="bdd-link-fields" hidden><div class="relation-endpoints"><div><label class="field-label" for="bdd-source">Élément de départ</label><select id="bdd-source"></select><label class="field-label" for="bdd-left">Cardinalité au départ</label><select id="bdd-left"></select></div><div><label class="field-label" for="bdd-target">Élément d'arrivée</label><select id="bdd-target"></select><label class="field-label" for="bdd-right">Cardinalité à l'arrivée</label><select id="bdd-right"></select></div></div><p class="palette-note">Choisissez deux éléments pour attacher le lien à leurs bords. Laissez les deux vides pour placer un lien libre.</p></div><p id="bdd-error" role="alert" class="fullscreen-error" hidden></p><div class="dialog-actions"><button value="cancel" formnovalidate class="button secondary">Annuler</button><button value="save" class="button primary">Insérer sur la feuille</button></div></form></dialog>
   <datalist id="sql-types">${['INT','BIGINT','VARCHAR(100)','VARCHAR(255)','TEXT','DATE','DATETIME','DECIMAL(10,2)','BOOLEAN','UUID'].map(value => `<option value="${value}"></option>`).join('')}</datalist>
   ${umlDialogMarkup()}
-  <section id="align-popover" popover aria-label="Aligner et répartir"><span class="eyebrow">DISPOSITION DE LA SÉLECTION</span><div class="align-command-grid">${[['left','À gauche'],['center-x','Centre horizontal'],['right','À droite'],['top','En haut'],['center-y','Centre vertical'],['bottom','En bas'],['distribute-x','Répartir horizontalement'],['distribute-y','Répartir verticalement']].map(([value,label])=>`<button class="button subtle" type="button" data-align="${value}">${label}</button>`).join('')}</div></section>
+  <section id="align-popover" popover aria-label="Aligner et répartir"><span class="eyebrow">DISPOSITION DE LA SÉLECTION</span><div class="align-command-grid">${[['left','À gauche'],['center-x','Centre horizontal'],['right','À droite'],['top','En haut'],['center-y','Centre vertical'],['bottom','En bas'],['distribute-x','Répartir horizontalement'],['distribute-y','Répartir verticalement']].map(([value,label])=>`<button class="button subtle" type="button" data-align="${value}" title="${label}" aria-label="${label}">${alignmentIcon(value)}<span>${label}</span></button>`).join('')}</div></section>
 `;
 
 function saveUmlElement(element, existing) {
   if(locked())return;
   if(!existing)element=applyDrawingStyle(element,{color,thickness,dash},patternChosen);
-  const container=['system','fragment'].includes(element.umlKind);
-  const attached=Boolean(element.sourceId);
+  const container=['system','fragment','package','swimlane'].includes(element.umlKind);
+  const attached=Boolean(element.sourceId||element.targetId);
   if(!existing&&!attached)element=container?(element.umlKind==='system'?translateElement(element,W-24-element.width-element.x,80-element.y):element):placeUmlElement(element);
   let next;
   if(existing)next=updateElement(doc(),activePage,existing.id,element);
@@ -284,7 +285,7 @@ function reframeGroup(next, parentId) {
 
 function placeElement(element) {
   const bounds = elementBounds(element);
-  const occupied = resolvedPage().elements.filter(e => !isConnector(e)&&!['Relation BDD','Relation UML'].includes(e.label)&&!['system','fragment','activation','destruction'].includes(e.umlKind)).map(elementBounds);
+  const occupied = resolvedPage().elements.filter(e => !isConnector(e)&&!['Relation BDD','Relation UML'].includes(e.label)&&!['system','fragment','package','swimlane','activation','destruction'].includes(e.umlKind)).map(elementBounds);
   for (let y = 80; y + bounds.height <= H - 24; y += 28) {
     for (let x = 28; x + bounds.width <= W - 24; x += 24) {
       if (occupied.every(b => x + bounds.width + 52 <= b.x || x >= b.x + b.width + 52 || y + bounds.height + 52 <= b.y || y >= b.y + b.height + 52)) return translateElement(element, x - bounds.x, y - bounds.y);
@@ -316,7 +317,7 @@ function commitTextEdit() {
   const editor = document.querySelector('#inline-text');
   const target = page().elements.flatMap(e => [e, ...(e.children || [])]).find(e => e.id === editingText.id);
   if (!target) { cancelTextEdit(); return true; }
-  const patch = { text: editor.value };
+  const patch = { text: editor.value, ...editingText.format };
   if(target.width!==undefined)patch.height=elementBounds({...target,...patch}).height;
   if (!textFits({ ...target, ...patch })) {
     toast('Le texte dépasse la feuille. Réduisez-le ou répartissez la réponse sur une autre feuille.', true);
@@ -326,7 +327,7 @@ function commitTextEdit() {
   const parent = parentGroup(target.id);
   if (parent) next = reframeGroup(next, parent.id);
   if (!next) { toast('Le texte agrandirait le groupe au-delà de la feuille. Raccourcissez-le ou déplacez le groupe.', true); editor.focus(); return false; }
-  const unchanged = target.text === patch.text;
+  const unchanged = target.text === patch.text && TEXT_STYLES.every(style => Boolean(target[style]) === Boolean(patch[style]));
   cancelTextEdit();
   if (!unchanged) change(next);
   selectElement(target.id);
@@ -342,7 +343,7 @@ function beginTextEdit(elementId) {
   if (parent&&!isDiagram(parent)) editingGroup = parent.id;
   selected = elementId;
   selectElement(elementId);
-  editingText = { id: elementId };
+  editingText = { id: elementId, format: Object.fromEntries(TEXT_STYLES.map(style=>[style,Boolean(target[style])])) };
   document.querySelector('#text-context').hidden = true;
   const bounds = elementBounds(target);
   const scale = zoom / 100;
@@ -353,19 +354,28 @@ function beginTextEdit(elementId) {
   editor.style.top = `${Math.max(8, bounds.y * scale - 8)}px`;
   editor.style.width = `${Math.min(W * scale - left - 12, Math.max(240, bounds.width * scale + 24))}px`;
   const choices=diagramChoices(target,parent),single=Boolean(target.role)&&!['uml-attributes','uml-operations'].includes(target.role);
+  editor.style.top = `${Math.max(8,bounds.y * scale - (choices?8:48))}px`;
   editor.classList.toggle('diagram-cell-editor',Boolean(target.role));
   const control=choices?`<select id="inline-text">${choices.map(([value,label])=>`<option value="${esc(value)}">${esc(label)}</option>`).join('')}</select>`:single?'<input id="inline-text" type="text" maxlength="80" autocomplete="off" spellcheck="false" />':'<textarea id="inline-text" maxlength="10000" spellcheck="false"></textarea>';
-  editor.innerHTML = `<label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label>${control}<div class="inline-editor-actions"><span class="small">${single?'Entrée : valider · Tab : suivant':'Ctrl + Entrée pour valider'}</span><button id="cancel-inline" class="button secondary" type="button">Annuler</button><button id="save-inline" class="button primary" type="button">Enregistrer</button></div>`;
+  editor.innerHTML = `${choices?'':textFormatMarkup(editingText.format)}<label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label>${control}<div class="inline-editor-actions"><span class="small">${single?'Entrée : valider · Tab : suivant':'Ctrl + Entrée pour valider'}</span><button id="cancel-inline" class="button secondary" type="button">Annuler</button><button id="save-inline" class="button primary" type="button">Enregistrer</button></div>`;
   document.querySelector('#paper-shell').append(editor);
   const field = editor.querySelector('#inline-text');
   field.value = target.text;
   if(!choices)field.placeholder=diagramPlaceholder(target);
   field.style.fontSize = `${Math.max(12,target.fontSize * scale)}px`;
   field.style.fontWeight=target.bold?'700':'400';field.style.fontStyle=target.italic?'italic':'normal';
+  field.style.textDecoration=target.underline?'underline':'none';
+  const toggleFormat=style=>{
+    editingText.format=toggleTextFormat(editingText.format,style);
+    editor.querySelector(`[data-text-format="${style}"]`).setAttribute('aria-pressed',editingText.format[style]);
+    field.style.fontWeight=editingText.format.bold?'700':'400';field.style.fontStyle=editingText.format.italic?'italic':'normal';field.style.textDecoration=editingText.format.underline?'underline':'none';field.focus();
+  };
+  editor.querySelectorAll('[data-text-format]').forEach(button=>button.onclick=()=>toggleFormat(button.dataset.textFormat));
   field.style.lineHeight = '1.5';
   field.style.minHeight = single?'36px':`${Math.max(95, Math.min(450, bounds.height * scale + 24))}px`;
   if(!single)field.addEventListener('input', () => { field.style.height = 'auto'; field.style.height = `${Math.min(450, Math.max(95, field.scrollHeight))}px`; });
   field.addEventListener('keydown', event => {
+    if(!choices&&(event.ctrlKey||event.metaKey)&&['b','i','u'].includes(event.key.toLowerCase())){event.preventDefault();event.stopPropagation();toggleFormat(({b:'bold',i:'italic',u:'underline'})[event.key.toLowerCase()]);return;}
     if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancelTextEdit(); renderPaper(); }
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); commitTextEdit(); }
     else if(target.role&&(event.key==='Tab'||single&&event.key==='Enter')){event.preventDefault();event.stopPropagation();if(commitTextEdit())focusNextDiagramField(target.id,event.shiftKey);}
@@ -561,7 +571,7 @@ function insertText(p, autoPlace = false) {
 document.querySelector('#context-edit').onclick = () => beginTextEdit(selected);
 document.querySelector('#context-delete').onclick = deleteSelected;
 document.querySelector('#context-color').oninput = e => styleSelected({ stroke: e.target.value });
-for(const style of ['bold','italic'])document.querySelector(`#context-${style}`).onclick=()=>{const text=item();if(text?.type==='text')styleSelected({[style]:!text[style]});};
+for(const style of TEXT_STYLES)document.querySelector(`#context-${style}`).onclick=()=>{const text=item();if(text?.type==='text')styleSelected({[style]:!text[style]});};
 document.querySelector('#context-size').onchange = e => {
   if (item()?.type !== 'text' || locked()) return;
   fontSize = Number(e.target.value);
@@ -591,7 +601,7 @@ function updateTextContext() {
   sizeControl.disabled = Boolean(e.role);
   sizeControl.title = e.role ? 'Taille adaptée automatiquement au composant du diagramme' : 'Taille du texte';
   document.querySelector('#context-color').value = e.stroke;
-  for(const style of ['bold','italic'])document.querySelector(`#context-${style}`).setAttribute('aria-pressed',Boolean(e[style]));
+  for(const style of TEXT_STYLES)document.querySelector(`#context-${style}`).setAttribute('aria-pressed',Boolean(e[style]));
   const width = menu.offsetWidth;
   const left = bounds.right + width + 12 < innerWidth ? bounds.right + 10 : Math.max(10, Math.min(innerWidth - width - 10, bounds.left));
   const top = left > bounds.right ? bounds.top : bounds.top - menu.offsetHeight - 10;
