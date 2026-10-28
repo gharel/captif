@@ -1,5 +1,5 @@
-import { createUmlNode, readUmlNode, updateUmlNode, isUmlNode, UML_NODE_KINDS } from './uml-nodes.js';
-import { createUmlRelation, readUmlRelation, updateUmlRelation, isUmlRelation } from './uml-relations.js';
+import { readUmlNode, updateUmlNode, isUmlNode, UML_NODE_KINDS } from './uml-nodes.js';
+import { readUmlRelation, updateUmlRelation, isUmlRelation } from './uml-relations.js';
 import { escape as esc } from './render.js';
 import { shapeIcon } from './shape-icon.js';
 
@@ -51,7 +51,7 @@ export function umlPaletteMarkup() {
   return `<section id="shape-library" aria-label="Bibliothèque de formes"><h2 class="shape-section-title">Formes</h2><div class="shape-icon-grid" role="group" aria-label="Insérer une forme">
     ${button('id="code-block"','Bloc de code',shapeIcon('code-block'))}
     ${button('id="entity"','Entité',shapeIcon('entity'))}
-    ${nodes.map(kind=>button(`data-uml-node="${kind}"`,NODE_LABELS[kind][0],shapeIcon(kind))).join('')}
+    ${nodes.map(kind=>button(`data-uml-node="${kind}"${['actor','participant','note','initial','component','deployment-node','entry-point','process','weak-entity'].includes(kind)?' data-section-start':''}`,NODE_LABELS[kind][0],shapeIcon(kind))).join('')}
     ${button('id="association"','Association — MCD',shapeIcon('association'))}
     </div><h2 class="shape-section-title">Connexions</h2><div class="shape-icon-grid connection-icon-grid" role="group" aria-label="Insérer une connexion">
     ${button('id="relation"','Lien avec cardinalités',shapeIcon('relation'))}
@@ -81,7 +81,7 @@ export function mountUmlUi({ getPage, isLocked, onSave, onCreate, beforeOpen = (
   const show = (id, visible) => { $(id).hidden = !visible; $(id).querySelectorAll('input,textarea,select').forEach(el=>{el.disabled=!visible;}); };
   const members = value => value.split('\n').map(line=>line.trim()).filter(Boolean);
   function syncLocked() { document.querySelectorAll('[data-uml-node],[data-uml-relation]').forEach(button=>{button.disabled=isLocked();}); }
-  $('shape-library').onclick=event=>{const node=event.target.closest('[data-uml-node]'),rel=event.target.closest('[data-uml-relation]');if(!node&&!rel)return;if(onCreate){if(!isLocked()&&beforeOpen())onCreate(node?.dataset.umlNode||rel.dataset.umlRelation,Boolean(rel));return;}if(node)open(node.dataset.umlNode);if(rel)open(rel.dataset.umlRelation,null,true);};
+  $('shape-library').onclick=event=>{const node=event.target.closest('[data-uml-node]'),rel=event.target.closest('[data-uml-relation]');if(!node&&!rel)return;if(!isLocked()&&beforeOpen())onCreate(node?.dataset.umlNode||rel.dataset.umlRelation,Boolean(rel));};
   function nodeOptions(filter = ()=>true) {
     return getPage().elements.filter(e=>isUmlNode(e)&&filter(e)).map(e=>({id:e.id,name:readUmlNode(e).name||NODE_LABELS[e.umlKind]?.[0]||'Élément'}));
   }
@@ -104,15 +104,15 @@ export function mountUmlUi({ getPage, isLocked, onSave, onCreate, beforeOpen = (
     if(kind==='message-self')$('uml-target').value=$('uml-source').value;
     $('uml-form-hint').textContent=RELATION_LABELS[kind][1]+(['aggregation','composition'].includes(kind)?'. Le départ représente le tout, l’arrivée la partie.':sequence?'. Choisissez les participants puis la position verticale du message.':'. La pointe de flèche est du côté de l’arrivée.');
   }
-  function open(kind, existing = null, relation = false) {
+  function open(kind, existing, relation = false) {
     if(isLocked()||!beforeOpen())return;
     state={kind,existing,relation};
     const lastMessage=Math.max(90,...getPage().elements.filter(e=>e.relationKind?.startsWith('message-')).map(e=>e.offset??160));
-    const values=relation?(existing?readUmlRelation(existing):{kind,name:'',left:'',right:'',offset:Math.min(800,lastMessage+70)}):(existing?readUmlNode(existing):readUmlNode(createUmlNode(kind)));
+    const values=relation?readUmlRelation(existing):readUmlNode(existing);
     if(!relation)kind=state.kind=values.kind;
     $('uml-error').hidden=true;
-    $('uml-dialog-title').textContent=`${existing?'Configurer':'Créer'} : ${(relation?RELATION_LABELS[kind]:NODE_LABELS[kind])[0]}`;
-    $('uml-save').textContent=existing?'Enregistrer les modifications':'Insérer sur la feuille';
+    $('uml-dialog-title').textContent=`Configurer : ${(relation?RELATION_LABELS[kind]:NODE_LABELS[kind])[0]}`;
+    $('uml-save').textContent='Enregistrer les modifications';
     $('uml-name-label').textContent=relation?'Libellé de la relation (facultatif)':kind==='object'?"Nom de l’instance":'Nom';
     $('uml-name-input').value=values.name||''; $('uml-name-input').required=!relation&&!['activation','destruction'].includes(kind);
     $('uml-stereotype-input').value=values.stereotype||''; $('uml-class-input').value=values.className||'Classe';
@@ -148,11 +148,11 @@ export function mountUmlUi({ getPage, isLocked, onSave, onCreate, beforeOpen = (
         if(!['message-found','message-lost'].includes(kind)&&Boolean(sourceId)!==Boolean(targetId))throw new Error('Choisissez les deux extrémités, ou laissez les deux en placement libre.');
         if(sourceId===targetId&&sourceId&&kind!=='message-self')throw new Error('Choisissez deux éléments distincts. Utilisez Auto-message pour un appel à soi-même.');
         const values={kind,name:$('uml-name-input').value,left:$('uml-left').disabled?'':$('uml-left').value,right:$('uml-right').disabled?'':$('uml-right').value,sourceId,targetId,offset:Number($('uml-offset').value)};
-        element=existing?updateUmlRelation(existing,values):createUmlRelation(values);
+        element=updateUmlRelation(existing,values);
       }else{
         const values={name:$('uml-name-input').value,stereotype:$('uml-stereotype-input').value,className:$('uml-class-input').value,attributes:members($('uml-attributes-input').value),operations:members($('uml-operations-input').value),condition:$('uml-condition-input').value,fragmentKind:$('uml-fragment-kind').value};
         if(!$('uml-width-input').disabled)values.width=Number($('uml-width-input').value);if(!$('uml-height-input').disabled)values.height=Number($('uml-height-input').value);
-        element=existing?updateUmlNode(existing,values):createUmlNode(kind,values);
+        element=updateUmlNode(existing,values);
         if(['activation','destruction'].includes(kind)&&$('uml-anchor').value){element.sourceId=$('uml-anchor').value;element.offset=Number($('uml-offset').value);}
       }
       onSave(element,existing);$('uml-dialog').close('save');state=null;

@@ -1,0 +1,43 @@
+@media screen {
+  #shape-tooltip { position:fixed; z-index:50; max-width:240px; padding:7px 10px; border-radius:6px; background:#253046; color:#fff; font-size:12px; line-height:1.4; pointer-events:none; box-shadow:0 3px 12px #17243b18; }
+  .workspace { --pages-width:224px; --library-width:280px; grid-template-columns:var(--pages-width) minmax(0,1fr) var(--library-width); }
+  .workspace.pages-collapsed { --pages-width:0px; }
+  .workspace.library-collapsed { --library-width:0px; }
+  .left-sidebar { grid-column:1; grid-row:1; }
+  .desk { grid-column:2; grid-row:1; }
+  .right-sidebar { grid-column:3; grid-row:1; }
+  .pages-collapsed .left-sidebar,.library-collapsed .right-sidebar { display:none; }
+  .desk { padding:8px 24px 12px; background-color:#f0f2f7; background-image:radial-gradient(#c7ccda75 .6px,transparent .6px); background-size:18px 18px; }
+  .app-header,.left-sidebar,.right-sidebar { background:#fff; }
+  .right-sidebar { min-width:0; padding:20px 18px 14px; display:flex; flex-direction:column; gap:12px; overflow:visible; }
+  .diagram-layout-tools { flex-shrink:0; position:static; margin:0; padding:0; background:none; }
+  #shape-library { flex:1; min-height:0; display:grid; grid-template-rows:auto minmax(0,1.25fr) auto minmax(0,1fr); row-gap:10px; }
+  .shape-section-title,.shape-section-title:not(:first-child) { margin:0; padding:0; border:0; font-size:11px; letter-spacing:.12em; color:#586174; }
+  .shape-icon-grid { min-height:0; align-content:start; gap:6px; padding:4px; margin:0; overflow-y:auto; overflow-x:hidden; border:0; border-radius:0; background:none; box-shadow:none; scrollbar-width:thin; scrollbar-color:#d8dce5 transparent; }
+  .shape-icon-button,.connection-icon-grid .shape-icon-button { min-height:40px; border-radius:8px; padding:8px; border:1px solid #e1e5ec; background:#fff; color:#526079; box-shadow:0 1px 2px #22334d06; transform:none; }
+  .shape-icon-button:hover:not(:disabled),.connection-icon-grid .shape-icon-button:hover:not(:disabled) { background:#f2efff; color:#6250dc; border-color:#b8adee; box-shadow:none; transform:none; }
+  .shape-icon-button:focus-visible { outline:2px solid #7561df; outline-offset:1px; background:#f2efff; }
+  .shape-icon-button:active:not(:disabled) { background:#eae4ff; transform:none; box-shadow:none; }
+  .shape-icon-button[data-section-start] { border-top:2px solid #aab3c3; }
+  #selection-heading { display:none; }
+  .selection-card { position:fixed; z-index:8; right:calc(var(--library-width) + 30px); bottom:76px; width:210px; max-height:50vh; overflow:auto; margin:0; background:#fff; border:1px solid #dfe3ec; border-radius:10px; box-shadow:0 8px 24px #17243b12; }
+  .selection-card h2 { font-size:13px; }
+  .selection-type { font-size:10px; }
+  .canvas-breadcrumb { gap:8px; justify-content:flex-start; min-height:28px; margin-bottom:6px; }
+  #toggle-library { margin-left:auto; }
+  .sidebar-toggle { display:grid; place-items:center; width:28px; height:26px; border:1px solid #dce1e9; border-radius:6px; background:#ffffffd9; color:#64718a; }
+  .sidebar-toggle svg { width:15px; height:15px; }
+  .sidebar-toggle:hover,.sidebar-toggle[aria-expanded=false] { color:#6250dc; border-color:#b8adee; background:#f2efff; }
+  .toolbar,#stroke-trigger { background:#fff; border:1px solid #dfe3ec; box-shadow:0 3px 12px #17243b07; }
+  .tool.active { background:#6854eb; box-shadow:0 2px 5px #6854eb20; }
+  .primary { background:#6854eb; box-shadow:0 2px 5px #6854eb20; }
+  .secondary { background:#fff; box-shadow:none; }
+  .header-session { background:#f8f9fc; box-shadow:none; }
+  .desk-footer { font-size:11px; }
+  #tool-hint { font-size:11px; }
+  .field-label { font-size:12px; }
+  .inline-size { display:flex; align-items:center; padding-left:5px; border-left:1px solid #e1e5ec; }
+  .inline-size input[type=number] { width:52px; min-height:28px; padding:2px 4px; border:0; font-size:12px; box-shadow:none; }
+  .direct-editor .inline-format-toolbar,.direct-editor .inline-editor-actions { z-index:12; box-shadow:0 3px 12px #17243b10; border-radius:8px; background:#fff; }
+}
+@media print { #shape-tooltip { display:none!important; } }

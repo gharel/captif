@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyUml, diagramPlaceholder } from '../src/diagram-inline.js';
+import { emptyUml } from '../src/diagram-inline.js';
 import { pageSvg, elementSvg } from '../src/render.js';
 
 test('les différentes formes vides restent sans indication de texte à l’écran et à l’impression', () => {
@@ -11,7 +11,6 @@ test('les différentes formes vides restent sans indication de texte à l’écr
       assert.doesNotMatch(svg,/Nom|Ajouter des attributs|Ajouter des méthodes|diagram-placeholder/,kind);
     }
     assert.deepEqual(shape,before);
-    for(const field of shape.children.filter(c=>c.type==='text'))assert.equal(diagramPlaceholder(field),'');
   }
 });
 

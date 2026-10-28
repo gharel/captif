@@ -16,6 +16,8 @@ Les demandes explicites de l'utilisateur priment sur ce document. Lire les spéc
 - `src/connectors.js`, `diagram-connections.js`, `layout.js` : accrochage, coudes et disposition.
 - `src/render.js` : SVG partagé par la feuille, les miniatures et l'impression.
 - `src/storage.js`, `monitor.js`, `print.js` : persistance, observations de session et impression.
+- `src/drafts.js` : brouillon local séparé, validation et reprise de la saisie non validée.
+- `src/performance.js`, `svg-patch.js` : caches bornés/faibles, cadence de rendu et conservation des groupes SVG inchangés.
 - `tests/*.test.js` : tests Node natifs ; `docs/` : spécifications et recettes visuelles.
 
 Préférer des fonctions pures et des changements ciblés. Ne pas ajouter de dépendance sans besoin concret. Le routage calculé, les repères d'édition et les poignées ne sont pas des données de copie.
@@ -24,6 +26,7 @@ Préférer des fonctions pures et des changements ciblés. Ne pas ajouter de dé
 
 - Ne jamais écraser ou supprimer silencieusement une copie illisible. Valider les imports avant de remplacer la copie courante. Conserver les identifiants des composants et les références de leurs liens pendant l'édition.
 - Les opérations sur le document sont immuables et annulables. Une duplication ou une réorganisation constitue une action d'historique.
+- Les caches de géométrie et de miniatures utilisent l'identité des pages immuables. Valider les modifications internes sans remplacer les pages inchangées par des clones ; les imports restent nettoyés par le validateur. Le brouillon n'entre dans l'historique qu'à la validation. Voir `docs/OPTIMIZATION.md`.
 - Les palettes ajoutent des composants vides sans fenêtre de création. Éditer les champs directement sur la feuille ; les réglages avancés restent facultatifs.
 - Les blocs de code sont vides à l'insertion. Coloration locale via highlight.js, sélection de langage dans l'éditeur, badge de langage en en-tête, aucun code exécuté ou suggéré. Conserver le texte brut/indentation et utiliser les mêmes couleurs SVG à l'impression. Voir `docs/CODE_BLOCKS.md`.
 - Aucun placeholder ni texte d'aide dans les formes vides ou leurs champs de saisie (« Nom », « Ajouter des attributs », etc.). Conserver de larges cibles cliquables dans les compartiments vides et préserver tout texte réellement saisi. Voir `docs/EMPTY_SHAPES.md`.

@@ -1,4 +1,5 @@
 export const W = 794;
+export const TEXT_SIZE=Object.freeze({min:12,max:32});
 import { codeLines } from './code-lines.js';
 export const H = 1123;
 

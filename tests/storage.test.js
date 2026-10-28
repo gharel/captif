@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { KEY, loadCopy, saveCopy } from '../src/storage.js';
+import { KEY, loadCopy, saveCopy, saveSession } from '../src/storage.js';
+import { createMonitor } from '../src/monitor.js';
 import { createDocument } from '../src/model.js';
 import { createEntity, readEntity } from '../src/bdd.js';
 import { emptyUml, editDiagramRows } from '../src/diagram-inline.js';
@@ -21,6 +22,14 @@ function storageFor(t, entries = []) {
   });
   return { storage, values };
 }
+
+test('le battement de session ne réécrit pas la copie et reprend uniquement la bonne session',t=>{
+  const {values}=storageFor(t),doc=createDocument();let at=1000;
+  const monitor=createMonitor({now:()=>at});monitor.start();saveCopy(doc,monitor.snapshot());
+  const original=values.get(KEY);at=2500;saveSession(doc.id,monitor.snapshot());
+  assert.equal(values.get(KEY),original);assert.equal(loadCopy().session.savedAt,2500);
+  saveSession('autre-copie',monitor.snapshot());assert.equal(loadCopy().session.savedAt,1000);
+});
 
 test('la première ouverture sans sauvegarde ne fabrique pas de copie restaurée', t => {
   storageFor(t);

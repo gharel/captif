@@ -1,6 +1,8 @@
 import { validateDocument } from './model.js';
 import { validateSession } from './monitor.js';
 export const KEY = 'captif-copy-v1';
+const SESSION_KEY='captif-session-v1';
+export function saveSession(documentId,session){localStorage.setItem(SESSION_KEY,JSON.stringify({documentId,session}));}
 
 export function loadCopy() {
   try {
@@ -8,7 +10,12 @@ export function loadCopy() {
     if (!raw) return {};
     const value = JSON.parse(raw);
     const notes = Array.isArray(value.notes) ? value.notes.filter(n => typeof n === 'string').slice(-1000) : [];
-    return { document: validateDocument(value.document), session: validateSession(value.session), savedAt: value.savedAt, notes };
+    const document=validateDocument(value.document);let session=validateSession(value.session);
+    try{
+      const heartbeat=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
+      if(heartbeat?.documentId===document.id){const next=validateSession(heartbeat.session);if(next.startedAt===session.startedAt&&(next.savedAt??0)>(session.savedAt??0))session=next;}
+    }catch{ /* A damaged heartbeat never replaces the primary session. */ }
+    return { document, session, savedAt: value.savedAt, notes };
   } catch {
     return { error: 'La sauvegarde locale est illisible ou indisponible. Elle a été conservée ; exportez votre travail avant de fermer.' };
   }

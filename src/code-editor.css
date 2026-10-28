@@ -1,4 +1,3 @@
-.inline-editor.code-editor { border-color:#b9c5df; box-shadow:0 20px 60px #17243b25,0 0 0 1px #fff; overflow:hidden; }
 .code-editor-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; background:linear-gradient(120deg,#17243b,#334463); color:#dce6ff; }
 .code-editor-toolbar > span { font:700 15px ui-monospace,monospace; color:#b7c7ff; }
 .code-editor-toolbar #code-language { width:155px; min-height:30px; padding:4px 8px; border:1px solid #ffffff30; border-radius:6px; background:#ffffff12; color:#eef3ff; font-size:11px; }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyBdd,emptyUml,editDiagramRows,diagramPlaceholder } from '../src/diagram-inline.js';
+import { emptyBdd,emptyUml,editDiagramRows } from '../src/diagram-inline.js';
 import { readEntity,createEntity } from '../src/bdd.js';
 import { readEntityBox } from '../src/entity-box.js';
 import { readUmlNode } from '../src/uml-nodes.js';
@@ -29,7 +29,6 @@ test('ajouter et retirer une ligne BDD conserve le groupe et ses champs existant
 });
 test('les nouveaux champs libres restent vides à l’écran comme à l’impression',()=>{
   const group=emptyBdd('entity'),doc=createDocument();doc.pages[0].elements=[group];
-  assert.equal(diagramPlaceholder(group.children.find(c=>c.role==='box-title')),'');
   const saved=validateDocument(doc);assert.equal(readEntityBox(saved.pages[0].elements[0]).title,'');
   assert.doesNotMatch(pageSvg(doc.pages[0],{editHints:true}),/Nom de l’entité/);
   assert.doesNotMatch(pageSvg(doc.pages[0]),/Nom de l’entité/);

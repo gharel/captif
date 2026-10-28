@@ -1,4 +1,5 @@
 export { translateElement, elementBounds } from './geometry.js';
+import { TEXT_SIZE } from './geometry.js';
 import { UML_NODE_KINDS } from './uml-nodes.js';
 import { UML_RELATION_KINDS } from './uml-relations.js';
 import { CODE_LANGUAGES } from './code-languages.js';
@@ -182,7 +183,7 @@ export function validateDocument(value) {
         if(element.waypoints!==undefined){if(!Array.isArray(element.waypoints)||element.waypoints.length>32)fail();clean.waypoints=element.waypoints.map(p=>{if(!object(p))fail();return {x:number(p.x,12,782),y:number(p.y,12,1111)};});}
       } else if (element.type === 'text') {
         clean.text = string(element.text, 10_000);
-        clean.fontSize = number(element.fontSize, child && clean.role ? 8 : 12, 32);
+        clean.fontSize = number(element.fontSize, child && clean.role ? 8 : TEXT_SIZE.min, TEXT_SIZE.max);
         if(element.width!==undefined){clean.width=number(element.width,1,794);if(clean.x+clean.width>794)fail();}
         if(element.height!==undefined){clean.height=number(element.height,1,1123);if(clean.y-clean.fontSize+clean.height>1123)fail();}
       } else if (element.type === 'pen') {

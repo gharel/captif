@@ -1,15 +1,18 @@
+import { weakMemo } from './performance.js';
 import { W, H, textLines, elementBounds } from './geometry.js';
 import { resolveRelations } from './bdd.js';
 import { resolveUmlRelations } from './uml-relations.js';
 import { resizeHandles } from './transforms.js';
 import { selectionBounds } from './selection.js';
 import { scaledDash } from './stroke.js';
-import { resolveConnectors,anchorsFor,isConnector,bendHandles } from './connectors.js';
-import { diagramPlaceholder,diagramActions,isDiagram } from './diagram-inline.js';
+import { resolveConnectors,anchorsFor,bendHandles } from './connectors.js';
+import { diagramActions,isDiagram } from './diagram-inline.js';
 import { editableConnector,resolveDiagramConnections } from './diagram-connections.js';
 import { codeSvg } from './code-highlight.js';
 export { W, H, textLines } from './geometry.js';
 export const escape = (v = '') => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+export const resolvePageGeometry=weakMemo(page=>resolveConnectors(resolveDiagramConnections(resolveUmlRelations(resolveRelations(page)))));
 
 export function textFits(e) {
   const size = e.fontSize || 18;
@@ -67,13 +70,12 @@ export function elementSvg(e, selected = false,editHints=false) {
   if (e.type === 'text') {
     const size = e.fontSize || 18;
     // Fixed page coordinates and explicit line breaking keep screen and PDF identical.
-    const placeholder=editHints&&!e.text.trim()?diagramPlaceholder(e):'';
-    const lines = placeholder?[placeholder]:textLines(e);
+    const lines = textLines(e);
     const bounds = elementBounds(e);
     const background = e.text.trim() && ['relation-name', 'cardinality-left', 'cardinality-right', 'uml-relation-name', 'uml-source-label', 'uml-target-label'].includes(e.role)
       ? `<rect class="relation-label-background" x="${bounds.x - 4}" y="${bounds.y - 2}" width="${bounds.width + 8}" height="${bounds.height + 4}" rx="3" fill="#ffffff" stroke="none" pointer-events="none"/>` : '';
     const textX=e._rightX??e._centerX??e.x;
-    let text = e.text.trim()||placeholder ? `<text${placeholder?' class="diagram-placeholder"':''} x="${textX}" y="${e.y}"${e._rightX!==undefined?' text-anchor="end"':e._centerX!==undefined?' text-anchor="middle"':''} font-size="${size}" fill="${placeholder?'#9ca3b6':color}" font-family="${e.role?'Arial, Helvetica, sans-serif':'ui-monospace, monospace'}"${e.bold ? ' font-weight="700"' : ''}${e.italic ? ' font-style="italic"' : ''}${e.underline ? ' text-decoration="underline"' : ''}>${lines.map((line, i) => `<tspan x="${textX}" dy="${i ? size * 1.5 : 0}">${escape(line) || ' '}</tspan>`).join('')}</text>` : '';
+    let text = e.text.trim() ? `<text x="${textX}" y="${e.y}"${e._rightX!==undefined?' text-anchor="end"':e._centerX!==undefined?' text-anchor="middle"':''} font-size="${size}" fill="${color}" font-family="${e.role?'Arial, Helvetica, sans-serif':'ui-monospace, monospace'}"${e.bold ? ' font-weight="700"' : ''}${e.italic ? ' font-style="italic"' : ''}${e.underline ? ' text-decoration="underline"' : ''}>${lines.map((line, i) => `<tspan x="${textX}" dy="${i ? size * 1.5 : 0}">${escape(line) || ' '}</tspan>`).join('')}</text>` : '';
     if(e.role==='code-content')text=e.text?codeSvg(e,e._codeLanguage||'plaintext'):'';
     const hit=e._hitBounds||bounds;
     inner = `${background}<rect class="text-hit" x="${hit.x}" y="${hit.y}" width="${hit.width}" height="${hit.height}" fill="transparent" stroke="none"/>${text}`;
@@ -118,7 +120,7 @@ export function pageSvg(page, { selected, selectedIds = [], editingGroup, grid =
     if(editingGroup)visible=visible.map(e=>e.id===editingGroup?{...e,children:[...e.children,...additions]}:e);
     else visible=[...visible,...additions];
   }
-  visible = resolveConnectors(resolveDiagramConnections(resolveUmlRelations(resolveRelations({ ...page, elements: visible })))).elements;
+  visible = resolvePageGeometry(!draft&&!drafts.length?page:{...page,elements:visible}).elements;
   const selectedElement = findElement(visible, selected);
   const multiple=selectedIds.length>1?selectedIds.map(id=>findElement(visible,id)).filter(Boolean):[];
   const selectionFrame=selectionBounds(multiple);

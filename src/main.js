@@ -2,27 +2,32 @@ import './style.css';
 import './code-editor.css';
 import { createDocument, addPage, removePage, addElement, updateElement, removeElement, createHistory, commit, undo, redo, validateDocument, translateElement, elementBounds } from './model.js';
 import { createMonitor } from './monitor.js';
-import { loadCopy, saveCopy, downloadJson } from './storage.js';
-import { W, H, escape as esc, pageSvg, duration, time, textFits } from './render.js';
-import { createEntity, readEntity, updateEntity, createAssociation, readAssociation, updateAssociation, createRelation, readRelation, updateRelation, resolveRelations, CARDINALITIES } from './bdd.js';
+import { loadCopy, saveCopy, saveSession, downloadJson } from './storage.js';
+import { W, H, escape as esc, pageSvg, duration, time, textFits, resolvePageGeometry } from './render.js';
+import { readEntity, updateEntity, readAssociation, updateAssociation, readRelation, updateRelation, CARDINALITIES } from './bdd.js';
 import { isUmlNode, readUmlNode, updateUmlNode } from './uml-nodes.js';
-import { isUmlRelation, readUmlRelation, updateUmlRelation, resolveUmlRelations } from './uml-relations.js';
+import { isUmlRelation, readUmlRelation, updateUmlRelation } from './uml-relations.js';
 import { umlPaletteMarkup, umlDialogMarkup, mountUmlUi, NODE_LABELS, RELATION_LABELS } from './uml-ui.js';
 import { strokeMarkup, mountStrokeUi } from './stroke-ui.js';
 import { createShape, resizeElement, duplicateElement } from './transforms.js';
 import { enclosedElements, duplicateSelection, moveSelection } from './selection.js';
 import { printDocument } from './print.js';
-import { resolveConnectors,findAnchor,attachEndpoint,isConnector,connectorData,moveBend } from './connectors.js';
+import { findAnchor,attachEndpoint,isConnector,connectorData,moveBend } from './connectors.js';
 import { DEFAULT_DRAWING_STYLE,applyDrawingStyle } from './drawing-style.js';
-import { emptyBdd,emptyUml,isDiagram,editableDiagramText,editDiagramRows,diagramChoices,diagramPlaceholder } from './diagram-inline.js';
+import { emptyBdd,emptyUml,isDiagram,editableDiagramText,editDiagramRows,diagramChoices } from './diagram-inline.js';
 import { alignElements,autoLayout,isLayoutBox } from './layout.js';
-import { editableConnector,resolveDiagramConnections } from './diagram-connections.js';
+import { editableConnector } from './diagram-connections.js';
 import { TEXT_STYLES, textFormatMarkup, toggleTextFormat, textStyleIcon, alignmentIcon } from './editor-controls.js';
 import { isEntityBox, updateEntityBox } from './entity-box.js';
 import { isCodeBlock, createCodeBlock, updateCodeBlock, CODE_LANGUAGES } from './code-blocks.js';
 import { highlightHtml } from './code-highlight.js';
 import { directTextPlacement } from './direct-editing.js';
 import './direct-editing.css';
+import './atelier.css';
+import { weakMemo, frameTask } from './performance.js';
+import { makeDraft, loadDraft, saveDraft, clearDraft } from './drafts.js';
+import { patchSvg } from './svg-patch.js';
+import { TEXT_SIZE } from './geometry.js';
 
 const loaded = loadCopy();
 let history = createHistory(loaded.document || createDocument());
@@ -69,8 +74,7 @@ const icons = Object.fromEntries(['select','pen','text','rect','ellipse','line',
 const names = { select: 'Sélection', pen: 'Stylo', text: 'Texte', rect: 'Rectangle', ellipse: 'Ellipse', line: 'Ligne', arrow: 'Flèche' };
 const doc = () => history.present;
 const page = () => doc().pages.find(p => p.id === activePage) || doc().pages[0];
-let resolvedSource=null,resolvedResult=null;
-const resolvedPage = () => {const source=page();if(source!==resolvedSource){resolvedSource=source;resolvedResult=resolveConnectors(resolveDiagramConnections(resolveUmlRelations(resolveRelations(source))));}return resolvedResult;};
+const resolvedPage = () => resolvePageGeometry(page());
 const item = () => resolvedPage().elements.flatMap(e => [e, ...(e.children || [])]).find(e => e.id === selected);
 const group = () => page().elements.find(e => e.id === editingGroup && e.type === 'group');
 const parentGroup = elementId => page().elements.find(e => e.children?.some(child => child.id === elementId));
@@ -88,6 +92,7 @@ const locked = () => !ownsWorkspace || monitor.snapshot().status === 'finished';
 const id = () => crypto.randomUUID();
 
 function persist() {
+  saveEditingDraft();
   if (recoveryBlocked || !ownsWorkspace) return;
   try {
     const saved = saveCopy(doc(), monitor.snapshot(), notes);
@@ -138,7 +143,7 @@ app.innerHTML = `
       </div>
       ${strokeMarkup()}
       </div>
-      <div class="canvas-breadcrumb"><span id="canvas-location">Feuille 01</span><div class="group-context" id="group-context" hidden><span id="group-name"></span><button id="exit-group" class="text-button">Quitter le groupe <kbd class="shortcut-key">Échap</kbd></button></div></div>
+      <div class="canvas-breadcrumb"><button id="toggle-pages" class="sidebar-toggle" aria-label="Réduire la colonne des feuilles" title="Afficher ou réduire les feuilles" aria-expanded="true">${icon('pages')}</button><span id="canvas-location">Feuille 01</span><div class="group-context" id="group-context" hidden><span id="group-name"></span><button id="exit-group" class="text-button">Quitter le groupe <kbd class="shortcut-key">Échap</kbd></button></div><button id="toggle-library" class="sidebar-toggle" aria-label="Réduire la bibliothèque" title="Afficher ou réduire la bibliothèque" aria-expanded="true">${icon('layout')}</button></div>
       <div class="paper-scroll"><div id="paper-shell"><div class="paper-header"><span id="paper-identity">Votre nom · Votre évaluation</span><span id="paper-number">01</span></div><div id="paper"></div><div class="paper-footer"><span>CAPTIF / COPIE D'ÉVALUATION</span><span id="paper-pagination"></span></div></div></div>
       <div class="desk-footer"><span id="tool-hint">MAJ + clic : sélectionner · ALT + glisser : dupliquer</span><div class="zoom-control"><button id="zoom-fit" title="Adapter la feuille à l'espace disponible">Ajuster</button><button id="zoom-out" aria-label="Réduire le zoom">−</button><span id="zoom-label">85 %</span><button id="zoom-in" aria-label="Augmenter le zoom">＋</button></div></div>
     </main>
@@ -262,26 +267,86 @@ document.querySelector('#edit-bdd').onclick = () => {
   if (target) openBddEditor(kind, target);
 };
 
+const shapeTooltip=document.createElement('div');shapeTooltip.id='shape-tooltip';shapeTooltip.role='tooltip';shapeTooltip.hidden=true;document.body.append(shapeTooltip);
+const library=document.querySelector('#shape-library');
+function hideShapeTooltip(){shapeTooltip.hidden=true;library.querySelectorAll('[aria-describedby="shape-tooltip"]').forEach(e=>e.removeAttribute('aria-describedby'));}
+function showShapeTooltip(event){
+  const button=event.target.closest('.shape-icon-button');if(!button||button.disabled)return;
+  hideShapeTooltip();shapeTooltip.textContent=button.getAttribute('aria-label');shapeTooltip.hidden=false;button.setAttribute('aria-describedby','shape-tooltip');
+  const rect=button.getBoundingClientRect();shapeTooltip.style.left=`${Math.max(8,rect.left-shapeTooltip.offsetWidth-10)}px`;shapeTooltip.style.top=`${Math.max(78,Math.min(innerHeight-shapeTooltip.offsetHeight-8,rect.top))}px`;
+}
+library.querySelectorAll('.shape-icon-button').forEach(e=>e.removeAttribute('title'));
+library.addEventListener('pointerover',showShapeTooltip);library.addEventListener('focusin',showShapeTooltip);
+library.addEventListener('pointerout',hideShapeTooltip);library.addEventListener('focusout',hideShapeTooltip);library.addEventListener('click',hideShapeTooltip);library.addEventListener('scroll',hideShapeTooltip,true);
+library.addEventListener('keydown',event=>{
+  const button=event.target.closest('.shape-icon-button');if(!button)return;
+  if(event.key==='Escape'){hideShapeTooltip();return;}
+  const buttons=[...button.parentElement.querySelectorAll('.shape-icon-button')],index=buttons.indexOf(button),columns=getComputedStyle(button.parentElement).gridTemplateColumns.split(' ').length;
+  const offset={ArrowLeft:-1,ArrowRight:1,ArrowUp:-columns,ArrowDown:columns}[event.key];
+  if(offset!==undefined){event.preventDefault();buttons[Math.max(0,Math.min(buttons.length-1,index+offset))].focus();}
+});
+
+if(innerWidth<1000)document.querySelector('.workspace').classList.add('pages-collapsed');
+if(innerWidth<760)document.querySelector('.workspace').classList.add('library-collapsed');
+for(const [id,className,name] of [['toggle-pages','pages-collapsed','la colonne des feuilles'],['toggle-library','library-collapsed','la bibliothèque']]){
+  document.querySelector(`#${id}`).setAttribute('aria-expanded',String(!document.querySelector('.workspace').classList.contains(className)));
+  document.querySelector(`#${id}`).onclick=()=>{
+    const collapsed=document.querySelector('.workspace').classList.toggle(className),button=document.querySelector(`#${id}`);
+    button.setAttribute('aria-expanded',String(!collapsed));button.setAttribute('aria-label',`${collapsed?'Afficher':'Réduire'} ${name}`);
+    fitPaper();positionEditingControls();
+  };
+}
+
+let draftTimer=null,draftRestored=false;
+function saveEditingDraft(){
+  clearTimeout(draftTimer);
+  if(!editingText||!ownsWorkspace||recoveryBlocked)return;
+  const field=document.querySelector('#inline-text'),target=page().elements.flatMap(e=>[e,...(e.children||[])]).find(e=>e.id===editingText.id);
+  if(!field||!target)return;
+  try{saveDraft(makeDraft(doc(),activePage,target,{text:field.value,format:editingText.format,language:editingText.language,fontSize:editingText.fontSize}));}
+  catch{toast('Brouillon non enregistré : validez ou exportez votre saisie avant de fermer.',true);}
+}
+function scheduleDraft(){clearTimeout(draftTimer);draftTimer=setTimeout(saveEditingDraft,150);positionEditingControls();}
+function restorePendingDraft(){
+  if(draftRestored||!ownsWorkspace||recoveryBlocked)return;draftRestored=true;
+  try{const draft=loadDraft(doc());if(draft&&!locked()){activePage=draft.pageId;renderPages();renderPaper();beginTextEdit(draft.elementId,draft);toast('Votre saisie en cours a été récupérée. Validez-la pour l’ajouter à la copie.');}}
+  catch(error){toast(error.message,true);}
+}
+function positionEditingControls(){
+  const editor=document.querySelector('#inline-editor');if(!editor)return;
+  const area=document.querySelector('.paper-scroll').getBoundingClientRect(),field=editor.getBoundingClientRect();
+  const format=editor.querySelector('.inline-format-toolbar'),actions=editor.querySelector('.inline-editor-actions');
+  const controls=[format,actions].filter(Boolean),width=controls.reduce((sum,e)=>sum+e.offsetWidth+8,0);
+  let left=Math.max(area.left+8,Math.min(area.right-width-8,field.left));
+  const top=Math.max(area.top+6,Math.min(area.bottom-42,field.top-46));
+  for(const control of controls){Object.assign(control.style,{position:'fixed',left:`${left}px`,right:'auto',top:`${top}px`,bottom:'auto'});left+=control.offsetWidth+8;}
+}
+document.querySelector('.paper-scroll').addEventListener('scroll',positionEditingControls);
+window.addEventListener('resize',positionEditingControls);
+
 function cancelTextEdit() {
+  clearTimeout(draftTimer);
+  if(editingText&&ownsWorkspace){try{clearDraft();}catch{toast('Impossible de retirer le brouillon local.',true);}}
   document.querySelector('#paper-shell').classList.remove('text-editing');
   document.querySelectorAll('#paper .editing-original').forEach(node=>node.classList.remove('editing-original'));
   document.querySelector('#inline-editor')?.remove();
   editingText = null;
 }
 
+function validatedUpdate(next){validateDocument(next);return next;}
 function reframeGroup(next, parentId) {
   const parent = next.pages.find(p => p.id === activePage)?.elements.find(e => e.id === parentId);
   if (!parent) return next;
-  if(isCodeBlock(parent)){try{return validateDocument(updateElement(next,activePage,parentId,updateCodeBlock(parent)));}catch{return null;}}
-  if(isEntityBox(parent)){try{return validateDocument(updateElement(next,activePage,parentId,updateEntityBox(parent)));}catch{return null;}}
-  if(isUmlNode(parent)) { try{return validateDocument(updateElement(next,activePage,parentId,{...updateUmlNode(parent,readUmlNode(parent)),...(parent.sourceId?{sourceId:parent.sourceId,offset:parent.offset}:{})}));}catch{return null;} }
-  if(isUmlRelation(parent)) { try{return validateDocument(updateElement(next,activePage,parentId,updateUmlRelation(parent,readUmlRelation(parent))));}catch{return null;} }
+  if(isCodeBlock(parent)){try{return validatedUpdate(updateElement(next,activePage,parentId,updateCodeBlock(parent)));}catch{return null;}}
+  if(isEntityBox(parent)){try{return validatedUpdate(updateElement(next,activePage,parentId,updateEntityBox(parent)));}catch{return null;}}
+  if(isUmlNode(parent)) { try{return validatedUpdate(updateElement(next,activePage,parentId,{...updateUmlNode(parent,readUmlNode(parent)),...(parent.sourceId?{sourceId:parent.sourceId,offset:parent.offset}:{})}));}catch{return null;} }
+  if(isUmlRelation(parent)) { try{return validatedUpdate(updateElement(next,activePage,parentId,updateUmlRelation(parent,readUmlRelation(parent))));}catch{return null;} }
   if (parent.label === 'Entité BDD' && parent.children.some(e => e.role === 'entity-name')) {
-    try { return validateDocument(updateElement(next, activePage, parentId, updateEntity(parent, readEntity(parent)))); }
+    try { return validatedUpdate(updateElement(next, activePage, parentId, updateEntity(parent, readEntity(parent)))); }
     catch { return null; }
   }
   if (parent.label === 'Association BDD') {
-    try { return validateDocument(updateElement(next, activePage, parentId, updateAssociation(parent, readAssociation(parent)))); }
+    try { return validatedUpdate(updateElement(next, activePage, parentId, updateAssociation(parent, readAssociation(parent)))); }
     catch { return null; }
   }
   if (parent.label === 'Relation BDD') return next;
@@ -331,7 +396,7 @@ function commitTextEdit() {
   const editor = document.querySelector('#inline-text');
   const target = page().elements.flatMap(e => [e, ...(e.children || [])]).find(e => e.id === editingText.id);
   if (!target) { cancelTextEdit(); return true; }
-  const patch = { text: editor.value, ...editingText.format };
+  const patch = { text: editor.value, ...editingText.format,...(!target.role?{fontSize:editingText.fontSize}:{}) };
   if(target.width!==undefined)patch.height=elementBounds({...target,...patch}).height;
   if (!textFits({ ...target, ...patch })) {
     toast('Le texte dépasse la feuille. Réduisez-le ou répartissez la réponse sur une autre feuille.', true);
@@ -342,16 +407,19 @@ function commitTextEdit() {
   if(isCodeBlock(parent))next=updateElement(next,activePage,parent.id,{codeLanguage:editingText.language});
   if (parent) next = reframeGroup(next, parent.id);
   if (!next) { toast('Le texte agrandirait le groupe au-delà de la feuille. Raccourcissez-le ou déplacez le groupe.', true); editor.focus(); return false; }
-  const unchanged = target.text === patch.text && TEXT_STYLES.every(style => Boolean(target[style]) === Boolean(patch[style])) && (!isCodeBlock(parent)||parent.codeLanguage===editingText.language);
+  const unchanged = target.text === patch.text && (!patch.fontSize||target.fontSize===patch.fontSize) && TEXT_STYLES.every(style => Boolean(target[style]) === Boolean(patch[style])) && (!isCodeBlock(parent)||parent.codeLanguage===editingText.language);
+  try{validateDocument(next);}catch(error){toast(`Saisie non enregistrée : ${error.message}`,true);editor.focus();return false;}
   cancelTextEdit();
   if (!unchanged) change(next);
   selectElement(target.id);
   return true;
 }
 
-function beginTextEdit(elementId) {
+function beginTextEdit(elementId,recovered=null) {
   if (locked()) return;
   if (editingText && !commitTextEdit()) return;
+  // The click completing a pointer gesture must not immediately close its editor.
+  ignoreOutsideClickUntil=Date.now()+150;
   const target = page().elements.flatMap(e => [e, ...(e.children || [])]).find(e => e.id === elementId && e.type === 'text');
   if (!target) return;
   if(target.role==='code-language'){const content=parentGroup(target.id)?.children.find(c=>c.role==='code-content');if(content)beginTextEdit(content.id);return;}
@@ -359,25 +427,24 @@ function beginTextEdit(elementId) {
   if (parent&&!isDiagram(parent)) editingGroup = parent.id;
   selected = elementId;
   selectElement(elementId);
-  editingText = { id: elementId, format: Object.fromEntries(TEXT_STYLES.map(style=>[style,Boolean(target[style])])) };
+  editingText = { id: elementId, fontSize:recovered?.fontSize||target.fontSize, format: recovered?.format||Object.fromEntries(TEXT_STYLES.map(style=>[style,Boolean(target[style])])) };
   const codeField=target.role==='code-content'&&isCodeBlock(parent);
-  if(codeField)editingText.language=parent.codeLanguage||'plaintext';
+  if(codeField)editingText.language=recovered?.language||parent.codeLanguage||'plaintext';
   document.querySelector('#text-context').hidden = true;
   const displayed=resolvedPage().elements.flatMap(e=>[e,...(e.children||[])]).find(e=>e.id===target.id)||target;
-  const bounds = elementBounds(displayed);
   const scale = zoom / 100;
   const editor = document.createElement('div');
   editor.id = 'inline-editor'; editor.className = 'inline-editor';
-  const placement=directTextPlacement(displayed,parent,scale);
+  const placement=directTextPlacement({...displayed,fontSize:editingText.fontSize},parent,scale);
   Object.assign(editor.style,{left:`${placement.left}px`,top:`${placement.top}px`,width:`${placement.width}px`});
   const choices=diagramChoices(target,parent),single=Boolean(target.role)&&!['uml-attributes','uml-operations','box-body','code-content'].includes(target.role);
   editor.classList.add('direct-editor');
   editor.classList.toggle('diagram-cell-editor',Boolean(target.role));
   editor.classList.toggle('code-editor',codeField);
   const control=choices?`<select id="inline-text">${choices.map(([value,label])=>`<option value="${esc(value)}">${esc(label)}</option>`).join('')}</select>`:single?'<input id="inline-text" type="text" maxlength="80" autocomplete="off" spellcheck="false" />':'<textarea id="inline-text" maxlength="10000" spellcheck="false"></textarea>';
-  editor.innerHTML = `${choices?'':textFormatMarkup(editingText.format)}<label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label>${control}<div class="inline-editor-actions"><span class="small">${single?'Entrée : valider · Tab : suivant':'Ctrl + Entrée pour valider'}</span><button id="cancel-inline" class="button secondary" type="button" aria-label="Annuler la saisie" title="Annuler (Échap)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><button id="save-inline" class="button primary" type="button" aria-label="Valider la saisie" title="Valider (Ctrl + Entrée)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button></div>`;
+  editor.innerHTML = `${choices?'':textFormatMarkup(editingText.format)}<label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label>${control}<div class="inline-editor-actions"><button id="cancel-inline" class="button secondary" type="button" aria-label="Annuler la saisie" title="Annuler (Échap)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><button id="save-inline" class="button primary" type="button" aria-label="Valider la saisie" title="Valider (Ctrl + Entrée)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button></div>`;
   if(codeField){
-    editor.innerHTML=`<div class="code-editor-toolbar"><span aria-hidden="true">&lt;/&gt;</span><label class="sr-only" for="code-language">Coloration syntaxique</label><select id="code-language">${Object.entries(CODE_LANGUAGES).map(([value,label])=>`<option value="${value}">${label}</option>`).join('')}</select></div><label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label><div class="code-input-wrap"><pre class="code-editor-preview" aria-hidden="true"><code></code></pre><textarea id="inline-text" maxlength="10000" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="soft"></textarea></div><div class="inline-editor-actions"><span class="small">Ctrl + Entrée pour valider</span><button id="cancel-inline" class="button secondary" type="button" aria-label="Annuler la saisie" title="Annuler (Échap)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><button id="save-inline" class="button primary" type="button" aria-label="Valider la saisie" title="Valider (Ctrl + Entrée)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button></div>`;
+    editor.innerHTML=`<div class="code-editor-toolbar"><span aria-hidden="true">&lt;/&gt;</span><label class="sr-only" for="code-language">Coloration syntaxique</label><select id="code-language">${Object.entries(CODE_LANGUAGES).map(([value,label])=>`<option value="${value}">${label}</option>`).join('')}</select></div><label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label><div class="code-input-wrap"><pre class="code-editor-preview" aria-hidden="true"><code></code></pre><textarea id="inline-text" maxlength="10000" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="soft"></textarea></div><div class="inline-editor-actions"><button id="cancel-inline" class="button secondary" type="button" aria-label="Annuler la saisie" title="Annuler (Échap)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><button id="save-inline" class="button primary" type="button" aria-label="Valider la saisie" title="Valider (Ctrl + Entrée)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button></div>`;
   }
   document.querySelector('#paper-shell').append(editor);
   document.querySelector('#paper-shell').classList.add('text-editing');
@@ -386,15 +453,21 @@ function beginTextEdit(elementId) {
   field.style.textAlign=placement.align;
   field.style.fontFamily=target.role&& !codeField?'Arial, Helvetica, sans-serif':'ui-monospace, monospace';
   document.querySelectorAll('#paper [data-element]').forEach(node=>{if(node.dataset.element===target.id)node.classList.add('editing-original');});
-  field.value = target.text;
-  if(!choices)field.placeholder=diagramPlaceholder(target);
+  field.value = recovered?.text??target.text;
   field.style.fontSize = `${placement.fontSize}px`;
-  field.style.fontWeight=target.bold?'700':'400';field.style.fontStyle=target.italic?'italic':'normal';
-  field.style.textDecoration=target.underline?'underline':'none';
+  field.style.fontWeight=editingText.format.bold?'700':'400';field.style.fontStyle=editingText.format.italic?'italic':'normal';
+  field.style.textDecoration=editingText.format.underline?'underline':'none';
+  const fitTextColumns=()=>{
+    if(single||target.role&&!codeField)return;
+    const columns=Math.max(1,Math.floor(placement.width/scale/(editingText.fontSize*.62)));
+    (codeField?editor.querySelector('.code-input-wrap'):field).style.width=`min(100%, ${columns}ch)`;
+    if(codeField){editor.querySelector('.code-input-wrap').style.fontSize=field.style.fontSize;editor.querySelector('.code-input-wrap').style.fontFamily=field.style.fontFamily;}
+  };
+  fitTextColumns();
   const toggleFormat=style=>{
     editingText.format=toggleTextFormat(editingText.format,style);
     editor.querySelector(`[data-text-format="${style}"]`).setAttribute('aria-pressed',editingText.format[style]);
-    field.style.fontWeight=editingText.format.bold?'700':'400';field.style.fontStyle=editingText.format.italic?'italic':'normal';field.style.textDecoration=editingText.format.underline?'underline':'none';field.focus();
+    field.style.fontWeight=editingText.format.bold?'700':'400';field.style.fontStyle=editingText.format.italic?'italic':'normal';field.style.textDecoration=editingText.format.underline?'underline':'none';scheduleDraft();field.focus();
   };
   editor.querySelectorAll('[data-text-format]').forEach(button=>button.onclick=()=>toggleFormat(button.dataset.textFormat));
   field.style.lineHeight = '1.5';
@@ -406,10 +479,17 @@ function beginTextEdit(elementId) {
     const language=editor.querySelector('#code-language'),preview=editor.querySelector('.code-editor-preview');
     language.value=editingText.language;preview.style.fontSize=field.style.fontSize;
     const refresh=()=>{preview.querySelector('code').innerHTML=highlightHtml(field.value,editingText.language)+'\n';};
-    language.onchange=()=>{editingText.language=language.value;refresh();};
+    language.onchange=()=>{editingText.language=language.value;refresh();scheduleDraft();};
     field.addEventListener('input',refresh);field.addEventListener('scroll',()=>{preview.scrollTop=field.scrollTop;preview.scrollLeft=field.scrollLeft;});refresh();
   }
-  if(!single)field.addEventListener('input', () => { field.style.height = 'auto'; field.style.height = `${Math.max(placement.height,field.scrollHeight)}px`; });
+  if(!single){const resizeField=()=>{field.style.height='auto';field.style.height=`${Math.max(placement.height,field.scrollHeight)}px`;positionEditingControls();};field.addEventListener('input',resizeField);resizeField();}
+  field.addEventListener('input',scheduleDraft);field.addEventListener('change',scheduleDraft);
+  if(!target.role){
+    const label=document.createElement('label');label.className='inline-size';label.innerHTML=`<span class="sr-only">Taille du texte</span><input type="number" min="${TEXT_SIZE.min}" max="${TEXT_SIZE.max}" step="1" aria-label="Taille du texte en pixels" />`;
+    const size=label.querySelector('input');size.value=editingText.fontSize;
+    size.oninput=()=>{const value=Number(size.value);if(value>=TEXT_SIZE.min&&value<=TEXT_SIZE.max){editingText.fontSize=value;field.style.fontSize=`${value*scale}px`;fitTextColumns();field.dispatchEvent(new Event('input'));scheduleDraft();}};
+    editor.querySelector('.inline-format-toolbar').append(label);
+  }
   field.addEventListener('keydown', event => {
     if(!choices&&!codeField&&(event.ctrlKey||event.metaKey)&&['b','i','u'].includes(event.key.toLowerCase())){event.preventDefault();event.stopPropagation();toggleFormat(({b:'bold',i:'italic',u:'underline'})[event.key.toLowerCase()]);return;}
     if(codeField&&event.key==='Tab'){event.preventDefault();event.stopPropagation();const start=field.selectionStart,end=field.selectionEnd;field.setRangeText('  ',start,end,'end');field.dispatchEvent(new Event('input'));return;}
@@ -421,6 +501,7 @@ function beginTextEdit(elementId) {
   editor.querySelector('#save-inline').onclick = commitTextEdit;
   field.focus(); if(!choices)field.setSelectionRange(field.value.length, field.value.length);
   editor.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  positionEditingControls();
 }
 
 function focusDiagramName(groupId){
@@ -462,7 +543,7 @@ document.addEventListener('click', event => {
 
 function renderPaper() {
   const p = page(); activePage = p.id;
-  document.querySelector('#paper').innerHTML = pageSvg(p, { selected, selectedIds:selectionIds(), editingGroup, grid, draft: gesture?.draft, drafts:gesture?.drafts, marquee:gesture?.marquee?{start:gesture.start,end:gesture.end||gesture.start}:null, handleSize:1000/zoom,connectionMode:['line','arrow'].includes(tool)||Boolean(gesture?.resizing&&(gesture.originalWire||['line','arrow'].includes(gesture.original.type))),snapAnchor:gesture?.snapAnchor||hoveredAnchor,editHints:!locked() });
+  patchSvg(document.querySelector('#paper'),pageSvg(p, { selected, selectedIds:selectionIds(), editingGroup, grid, draft: gesture?.draft, drafts:gesture?.drafts, marquee:gesture?.marquee?{start:gesture.start,end:gesture.end||gesture.start}:null, handleSize:1000/zoom,connectionMode:['line','arrow'].includes(tool)||Boolean(gesture?.resizing&&(gesture.originalWire||['line','arrow'].includes(gesture.original.type))),snapAnchor:gesture?.snapAnchor||hoveredAnchor,editHints:!locked() }));
   const index = doc().pages.findIndex(p => p.id === activePage) + 1;
   document.querySelector('#paper-identity').textContent = `${doc().student.name || 'Votre nom'} · ${doc().exam || 'Votre évaluation'}`;
   document.querySelector('#paper-number').textContent = String(index).padStart(2, '0');
@@ -481,7 +562,7 @@ function renderPaper() {
 function updateInspector() {
   const e = item();
   const count=selectionIds().length;
-  document.querySelector('.selection-card').hidden = !e;
+  document.querySelector('.selection-card').hidden = !e||e.type!=='group'&&!editableConnector(e);
   document.querySelector('#selection-heading').hidden = !e;
   document.querySelector('#selection-type').textContent = e ? e.type === 'group' ? 'GROUPE SÉLECTIONNÉ' : group() ? 'DANS LE GROUPE' : 'OBJET SÉLECTIONNÉ' : '';
   document.querySelector('#selection-title').textContent = e ? e.label || names[e.type] || 'Objet' : '';
@@ -507,10 +588,20 @@ function updateInspector() {
   document.querySelector('#auto-layout').disabled=locked()||!page().elements.some(isLayoutBox);
 }
 
+const thumbnailSvg=weakMemo(p=>pageSvg(p));
+const pageButtons=new Map();
 function renderPages() {
-  document.querySelector('#pages').innerHTML = doc().pages.map((p, i) => `<button class="page-link ${p.id === activePage ? 'current' : ''}" data-page="${esc(p.id)}" aria-current="${p.id === activePage ? 'page' : 'false'}"><div class="thumbnail">${pageSvg(p)}<span>${String(i + 1).padStart(2, '0')}</span></div><span>Feuille ${String(i + 1).padStart(2, '0')}</span><small>${p.elements.length ? `${p.elements.length} élément(s)` : 'Page blanche'}</small></button>`).join('');
-  document.querySelector('#page-count').textContent = String(doc().pages.length).padStart(2, '0');
-  document.querySelector('#remove-page').disabled = doc().pages.length === 1 || locked();
+  const nav=document.querySelector('#pages'),ids=new Set(doc().pages.map(p=>p.id));
+  for(const [id,entry] of pageButtons)if(!ids.has(id)){entry.node.remove();pageButtons.delete(id);}
+  doc().pages.forEach((p,i)=>{
+    let entry=pageButtons.get(p.id);
+    if(!entry){const node=document.createElement('button');node.className='page-link';node.dataset.page=p.id;entry={node};pageButtons.set(p.id,entry);}
+    if(entry.page!==p||entry.index!==i){entry.node.innerHTML=`<div class="thumbnail">${thumbnailSvg(p)}<span>${String(i+1).padStart(2,'0')}</span></div><span>Feuille ${String(i+1).padStart(2,'0')}</span><small>${p.elements.length?`${p.elements.length} élément(s)`:'Page blanche'}</small>`;entry.page=p;entry.index=i;}
+    entry.node.classList.toggle('current',p.id===activePage);entry.node.setAttribute('aria-current',p.id===activePage?'page':'false');
+    if(nav.children[i]!==entry.node)nav.insertBefore(entry.node,nav.children[i]||null);
+  });
+  document.querySelector('#page-count').textContent=String(doc().pages.length).padStart(2,'0');
+  document.querySelector('#remove-page').disabled=doc().pages.length===1||locked();
 }
 
 function updateHistory() {
@@ -578,8 +669,8 @@ for (const [selector, key] of [['#student-name', 'name']]) {
 }
 document.querySelector('#exam-title').value = doc().exam;
 document.querySelector('#exam-title').oninput = e => { history = { ...history, present: { ...doc(), exam: e.target.value } }; persist(); renderPaper(); };
-document.querySelector('#pages').onclick = e => { const button = e.target.closest('[data-page]'); if (button) { activePage = button.dataset.page; selected = null; editingGroup = null; renderPages(); renderPaper(); updateHistory(); } };
-document.querySelector('#add-page').onclick = () => { const next = addPage(doc()); activePage = next.pages.at(-1).id; selected = null; editingGroup = null; change(next); };
+document.querySelector('#pages').onclick = e => { const button = e.target.closest('[data-page]'); if (button) { activePage = button.dataset.page; selected = null; editingGroup = null; renderPages(); renderPaper(); updateHistory(); document.querySelector('.paper-scroll').scrollTo(0,0); } };
+document.querySelector('#add-page').onclick = () => { const next = addPage(doc()); activePage = next.pages.at(-1).id; selected = null; editingGroup = null; change(next); document.querySelector('.paper-scroll').scrollTo(0,0); };
 document.querySelector('#remove-page').onclick = async () => { if (page().elements.length && !await confirmAction('Supprimer cette feuille et son contenu ?')) return; selected = null; change(removePage(doc(), activePage)); };
 function travel(fn) { if (locked()) return; const { student, exam } = doc(); history = fn(history); history = { ...history, present: { ...doc(), student, exam } }; selected = null; if (!group()) editingGroup = null; persist(); renderPaper(); renderPages(); updateHistory(); }
 document.querySelector('#undo').onclick = () => travel(undo);
@@ -597,7 +688,7 @@ function styleSelected(patch) {
 }
 function insertText(p, autoPlace = false) {
   if (locked()) return;
-  const text = 'Votre texte';
+  const text = '';
   let element = { id: id(), type: 'text', ...p, text, fontSize, width:Math.min(320,W-32-p.x), height:fontSize*1.3, stroke: color, strokeWidth: thickness };
   if (autoPlace) { try { element = placeElement(element); } catch (error) { toast(error.message, true); return; } }
   if (!textFits(element)) { toast('Le texte ne tient pas à cet endroit. Cliquez plus haut ou plus à gauche, ou répartissez le texte sur plusieurs feuilles.', true); return; }
@@ -651,11 +742,6 @@ document.querySelector('.paper-scroll').addEventListener('scroll', updateTextCon
 window.addEventListener('scroll', updateTextContext, true);
 window.addEventListener('resize', updateTextContext);
 
-const blankAttributes = () => [
-  { name: 'id', type: 'INT', key: 'PK', nullable: false },
-  { name: 'nom', type: 'VARCHAR(100)', key: '', nullable: false },
-  { name: 'description', type: 'TEXT', key: '', nullable: true },
-];
 function readAttributeInputs() {
   return [...document.querySelectorAll('#attribute-rows tr')].map(row => ({
     name: row.querySelector('[data-field="name"]').value.trim(),
@@ -671,11 +757,11 @@ function renderAttributeRows(attributes) {
 document.querySelector('#add-attribute').onclick = () => { const attributes = readAttributeInputs(); if (attributes.length < 12) { attributes.push({ name: '', type: 'VARCHAR(100)', key: '', nullable: true }); renderAttributeRows(attributes); document.querySelector('#attribute-rows tr:last-child [data-field="name"]').focus(); } };
 document.querySelector('#attribute-rows').onclick = event => { const button = event.target.closest('[data-remove-row]'); if (button) renderAttributeRows(readAttributeInputs().filter((_, index) => index !== Number(button.dataset.removeRow))); };
 
-function openBddEditor(kind, existing = null) {
+function openBddEditor(kind, existing) {
   if (locked()) return;
   bddEditing = { kind, existing };
-  const values = existing ? kind === 'entity' ? readEntity(existing) : kind === 'association' ? readAssociation(existing) : readRelation(existing) : kind === 'entity' ? { name: 'ENTITÉ', attributes: blankAttributes() } : kind === 'association' ? { name: 'ASSOCIATION', attributes: [] } : { name: 'associer', left: '1,1', right: '0,N', sourceId: null, targetId: null };
-  document.querySelector('#bdd-title').textContent = `${existing ? 'Configurer' : 'Créer'} ${kind === 'entity' ? "l'entité" : kind === 'association' ? "l'association" : 'le lien'}`;
+  const values = kind === 'entity' ? readEntity(existing) : kind === 'association' ? readAssociation(existing) : readRelation(existing);
+  document.querySelector('#bdd-title').textContent = `Configurer ${kind === 'entity' ? "l'entité" : kind === 'association' ? "l'association" : 'le lien'}`;
   document.querySelector('#bdd-name').value = values.name;
   document.querySelector('#bdd-error').hidden = true;
   document.querySelector('#bdd-attributes').hidden = kind === 'relation';
@@ -685,12 +771,11 @@ function openBddEditor(kind, existing = null) {
   const targets = page().elements.filter(e => e.type === 'group' && ['Entité BDD','Association BDD'].includes(e.label));
   const options = '<option value="">Lien libre</option>' + targets.map(e => `<option value="${esc(e.id)}">${esc(e.label === 'Entité BDD' ? readEntity(e).name : readAssociation(e).name)}</option>`).join('');
   document.querySelector('#bdd-source').innerHTML = options; document.querySelector('#bdd-target').innerHTML = options;
-  document.querySelector('#bdd-source').value = values.sourceId || (!existing ? targets[0]?.id || '' : '');
-  document.querySelector('#bdd-target').value = values.targetId || (!existing ? targets[1]?.id || '' : '');
-  if (targets.length < 2 && !existing) { document.querySelector('#bdd-source').value = ''; document.querySelector('#bdd-target').value = ''; }
+  document.querySelector('#bdd-source').value = values.sourceId || '';
+  document.querySelector('#bdd-target').value = values.targetId || '';
   for (const selector of ['#bdd-left','#bdd-right']) document.querySelector(selector).innerHTML = CARDINALITIES.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
   document.querySelector('#bdd-left').value = values.left || '1,1'; document.querySelector('#bdd-right').value = values.right || '0,N';
-  document.querySelector('#bdd-form button[value="save"]').textContent = existing ? 'Enregistrer les modifications' : 'Insérer sur la feuille';
+  document.querySelector('#bdd-form button[value="save"]').textContent = 'Enregistrer les modifications';
   document.querySelector('#text-context').hidden = true;
   document.querySelector('#bdd-dialog').showModal();
 }
@@ -710,12 +795,9 @@ document.querySelector('#bdd-form').onsubmit = event => {
     const targetId = document.querySelector('#bdd-target').value || null;
     if (kind === 'relation' && Boolean(sourceId) !== Boolean(targetId)) throw new Error('Choisissez les deux éléments à relier, ou laissez les deux vides.');
     if (kind === 'relation' && sourceId && sourceId === targetId) throw new Error('Choisissez deux éléments distincts pour ce lien.');
-    const offset = Math.min(180, page().elements.length * 24);
-    const values = { x: 50 + offset, y: 90 + offset, name, attributes, sourceId, targetId, left: document.querySelector('#bdd-left').value, right: document.querySelector('#bdd-right').value };
-    let element = existing ? kind === 'entity' ? updateEntity(existing, values) : kind === 'association' ? updateAssociation(existing, values) : updateRelation(existing, values) : kind === 'entity' ? createEntity(values) : kind === 'association' ? createAssociation(values) : createRelation(values);
-    if(!existing)element=applyDrawingStyle(element,{color,thickness,dash},patternChosen);
-    if (!existing && !(kind === 'relation' && sourceId && targetId)) element = placeElement(element);
-    const next = existing ? updateElement(doc(), activePage, existing.id, element) : addElement(doc(), activePage, element);
+    const values = { name, attributes, sourceId, targetId, left: document.querySelector('#bdd-left').value, right: document.querySelector('#bdd-right').value };
+    const element = kind === 'entity' ? updateEntity(existing, values) : kind === 'association' ? updateAssociation(existing, values) : updateRelation(existing, values);
+    const next = updateElement(doc(), activePage, existing.id, element);
     validateDocument(next);
     selected = element.id; editingGroup = null;
     change(next); setTool('select');
@@ -840,11 +922,15 @@ paperNode.onpointerdown = e => {
   gesture = { pointerId: e.pointerId, start: sourceAnchor||p, draft: element,sourceAnchor,snapAnchor:sourceAnchor };
   renderPaper();
 };
+const gestureFrame=frameTask(()=>{if(gesture?.marquee||!gesture){renderPaper();return;}const g=gesture;paintGesture(g);});
+function paintGesture(g){
+  patchSvg(document.querySelector('#paper'),pageSvg(page(), { selected, selectedIds:g.copies?.map(e=>e.id)||selectionIds(), editingGroup, grid, draft: g.draft, drafts:g.drafts, handleSize:1000/zoom,connectionMode:['line','arrow'].includes(tool)||Boolean(g.resizing&&(g.originalWire||['line','arrow'].includes(g.original.type))),snapAnchor:g.snapAnchor,editHints:!locked() }));
+}
 paperNode.onpointermove = e => {
   if(!gesture){
     if(['line','arrow'].includes(tool)){
       const anchor=findAnchor(resolvedPage().elements,point(e),16*100/zoom);
-      if(anchor?.shapeId!==hoveredAnchor?.shapeId||anchor?.side!==hoveredAnchor?.side){hoveredAnchor=anchor;renderPaper();}
+      if(anchor?.shapeId!==hoveredAnchor?.shapeId||anchor?.side!==hoveredAnchor?.side){hoveredAnchor=anchor;gestureFrame.schedule();}
     }
     return;
   }
@@ -854,7 +940,7 @@ paperNode.onpointermove = e => {
   if(g.marquee){
     g.end=p;
     if(Math.hypot(p.x-g.start.x,p.y-g.start.y)>3){g.changed=true;setSelection([...g.base,...enclosedElements(g.candidates,g.start,p)]);}
-    renderPaper();return;
+    gestureFrame.schedule();return;
   } else if(g.batchMoving){
     if(!g.changed&&Math.hypot(p.x-g.start.x,p.y-g.start.y)<3)return;
     if(!g.changed&&g.duplicate)g.copies=duplicateSelection(g.originals,g.available);
@@ -888,10 +974,10 @@ paperNode.onpointermove = e => {
     const drawn=createShape(el,g.start,p,{shift:e.shiftKey,alt:e.altKey&&!g.sourceAnchor});
     g.draft=attachEndpoint(drawn,'end',{x:drawn.x2,y:drawn.y2},g.snapAnchor);
   }else g.draft=createShape(el,g.start,p,{shift:e.shiftKey,alt:e.altKey});
-  document.querySelector('#text-context').hidden=true;
-  document.querySelector('#paper').innerHTML = pageSvg(page(), { selected, selectedIds:g.copies?.map(e=>e.id)||selectionIds(), editingGroup, grid, draft: g.draft, drafts:g.drafts, handleSize:1000/zoom,connectionMode:['line','arrow'].includes(tool)||Boolean(g.resizing&&(g.originalWire||['line','arrow'].includes(g.original.type))),snapAnchor:g.snapAnchor,editHints:!locked() });
+  document.querySelector('#text-context').hidden=true;gestureFrame.schedule();
 };
 paperNode.onpointerup = e => {
+  gestureFrame.flush();
   if (paperNode.hasPointerCapture(e.pointerId)) paperNode.releasePointerCapture(e.pointerId);
   if (!gesture || gesture.pointerId !== e.pointerId) {if(pendingDiagramEdit){const fieldId=pendingDiagramEdit;pendingDiagramEdit=null;ignoreOutsideClickUntil=Date.now()+150;beginTextEdit(fieldId);}return;}
   const g = gesture; gesture = null;hoveredAnchor=null;
@@ -918,7 +1004,7 @@ paperNode.onpointerup = e => {
   if(isConnector(g.draft)&&Math.hypot(g.draft.x2-g.draft.x,g.draft.y2-g.draft.y)<3){renderPaper();return;}
   selected = g.draft.id; change(addElement(doc(), activePage, g.draft));
 };
-paperNode.onpointercancel = e => { pendingDiagramEdit=null;if (gesture?.pointerId === e.pointerId) { gesture = null; renderPaper(); } };
+paperNode.onpointercancel = e => { gestureFrame.cancel(); pendingDiagramEdit=null;if (gesture?.pointerId === e.pointerId) { gesture = null; renderPaper(); } };
 for(const eventName of ['keydown','keyup'])window.addEventListener(eventName,e=>{
   if(!['Shift','Alt'].includes(e.key)||!gesture?.lastClient||gesture.moving||gesture.batchMoving||gesture.marquee)return;
   e.preventDefault();
@@ -1028,7 +1114,9 @@ else if (loaded.document) toast('Votre copie a été restaurée depuis cet appar
 if (monitor.snapshot().status === 'active') {
   monitor.signal('visibility', !document.hidden); monitor.signal('focus', document.hasFocus()); persist();
 }
-setInterval(() => { updateStats(); if (monitor.snapshot().status === 'active') persist(); }, 1000);
+setInterval(() => { updateStats(); if (ownsWorkspace&&!recoveryBlocked&&monitor.snapshot().status === 'active') {try{saveSession(doc().id,monitor.snapshot());}catch{toast('Suivi de session non enregistré : exportez votre copie.',true);}} }, 1000);
+
+if(ownsWorkspace)restorePendingDraft();
 
 // One editor per origin prevents another tab from overwriting an exam copy.
 // The browser releases this lock automatically when this document is destroyed.
@@ -1039,7 +1127,7 @@ if (navigator.locks) {
       toast('Cette copie est déjà ouverte dans un autre onglet. Fermez cet onglet en double, ou fermez l’autre puis rechargez cette page.', true);
       return;
     }
-    ownsWorkspace = true; updateStats(); renderPages();
+    ownsWorkspace = true; updateStats(); renderPages(); restorePendingDraft();
     return new Promise(() => {});
   }).catch(() => { toast('Impossible de réserver la copie. Rechargez cette page dans un navigateur classique.', true); });
 }
