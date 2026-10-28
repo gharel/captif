@@ -27,8 +27,9 @@ export function removePage(doc, pageId) {
 }
 
 function mapPage(doc, pageId, transform) {
-  if (!doc.pages.some((page) => page.id === pageId)) return doc;
-  return { ...doc, pages: doc.pages.map((page) => page.id === pageId ? transform(page) : page) };
+  const index=doc.pages.findIndex(page=>page.id===pageId);if(index<0)return doc;
+  const next=transform(doc.pages[index]);if(next===doc.pages[index])return doc;
+  const pages=doc.pages.slice();pages[index]=next;return {...doc,pages};
 }
 
 export function addElement(doc, pageId, element) {
@@ -43,21 +44,37 @@ function countElements(elements) {
 }
 
 export function updateElement(doc, pageId, elementId, patch) {
-  return mapPage(doc, pageId, (page) => ({
-    ...page,
-    elements: page.elements.map((element) => {
-      if (element.id === elementId) return { ...element, ...structuredClone(patch), id: element.id, type: element.type };
-      if (element.type === 'group') return { ...element, children: element.children.map(child => child.id === elementId ? { ...child, ...structuredClone(patch), id: child.id, type: child.type } : child) };
-      return element;
-    }),
-  }));
+  const update=element=>{
+    if(Object.entries(patch).every(([key,value])=>['id','type'].includes(key)||Object.is(element[key],value)))return element;
+    return {...element,...structuredClone(patch),id:element.id,type:element.type};
+  };
+  return mapPage(doc,pageId,page=>{
+    let changed=false;
+    const elements=page.elements.map(element=>{
+      let next=element;
+      if(element.id===elementId)next=update(element);
+      else if(element.children?.some(child=>child.id===elementId)){
+        const children=element.children.map(child=>child.id===elementId?update(child):child);
+        if(children.some((child,i)=>child!==element.children[i]))next={...element,children};
+      }
+      if(next!==element)changed=true;return next;
+    });
+    return changed?{...page,elements}:page;
+  });
 }
 
 export function removeElement(doc, pageId, elementId) {
-  return mapPage(doc, pageId, (page) => ({
-    ...page, elements: page.elements.filter((element) => element.id !== elementId && element.sourceId !== elementId && element.targetId !== elementId).map(element => element.type === 'group'
-      ? { ...element, children: element.children.filter(child => child.id !== elementId) } : element),
-  }));
+  return mapPage(doc,pageId,page=>{
+    let changed=false;
+    const elements=page.elements.filter(element=>{
+      const keep=element.id!==elementId&&element.sourceId!==elementId&&element.targetId!==elementId;
+      if(!keep)changed=true;return keep;
+    }).map(element=>{
+      if(!element.children?.some(child=>child.id===elementId))return element;
+      changed=true;return {...element,children:element.children.filter(child=>child.id!==elementId)};
+    });
+    return changed?{...page,elements}:page;
+  });
 }
 
 export const createHistory = (initial) => ({ past: [], present: initial, future: [] });

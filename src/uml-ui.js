@@ -48,12 +48,12 @@ export const PALETTE_NODE_KINDS=UML_NODE_KINDS.filter(kind=>!['abstract-class','
 export function umlPaletteMarkup() {
   const button=(attrs,name,svg)=>`<button type="button" class="shape-icon-button" ${attrs} aria-label="${esc(name)}" title="${esc(name)}">${svg}</button>`;
   const nodes=PALETTE_NODE_KINDS;
-  return `<section id="shape-library" aria-label="Bibliothèque de formes"><h2 class="shape-section-title">Formes</h2><div class="shape-icon-grid" role="group" aria-label="Insérer une forme">
+  return `<section id="shape-library" aria-label="Bibliothèque de formes"><h2 class="shape-section-title">Formes <span class="palette-total">${nodes.length+3}</span></h2><div class="shape-icon-grid" role="group" aria-label="Insérer une forme">
     ${button('id="code-block"','Bloc de code',shapeIcon('code-block'))}
     ${button('id="entity"','Entité',shapeIcon('entity'))}
     ${nodes.map(kind=>button(`data-uml-node="${kind}"${['actor','participant','note','initial','component','deployment-node','entry-point','process','weak-entity'].includes(kind)?' data-section-start':''}`,NODE_LABELS[kind][0],shapeIcon(kind))).join('')}
     ${button('id="association"','Association — MCD',shapeIcon('association'))}
-    </div><h2 class="shape-section-title">Connexions</h2><div class="shape-icon-grid connection-icon-grid" role="group" aria-label="Insérer une connexion">
+    </div><h2 class="shape-section-title">Connexions <span class="palette-total">${Object.keys(RELATION_LABELS).length+1}</span></h2><div class="shape-icon-grid connection-icon-grid" role="group" aria-label="Insérer une connexion">
     ${button('id="relation"','Lien avec cardinalités',shapeIcon('relation'))}
     ${Object.keys(RELATION_LABELS).map(kind=>button(`data-uml-relation="${kind}"`,RELATION_LABELS[kind][0],relationPreview(kind))).join('')}
     </div></section>`;

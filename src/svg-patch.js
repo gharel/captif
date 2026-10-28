@@ -1,8 +1,11 @@
 // Preserve unchanged SVG groups and native event targets during pointer gestures.
+const lastPaint=new WeakMap();
 export function patchSvg(container,markup){
+  const previous=lastPaint.get(container);
+  if(previous&&previous.root===container.firstElementChild&&previous.markup===markup)return false;
   const template=document.createElement('template');template.innerHTML=markup;
   const next=template.content.firstElementChild,current=container.firstElementChild;
-  if(!current||current.tagName!==next.tagName){container.replaceChildren(next);return;}
+  if(!current||current.tagName!==next.tagName){container.replaceChildren(next);lastPaint.set(container,{root:next,markup});return true;}
   for(const attr of [...current.attributes])if(!next.hasAttribute(attr.name))current.removeAttribute(attr.name);
   for(const attr of next.attributes)if(current.getAttribute(attr.name)!==attr.value)current.setAttribute(attr.name,attr.value);
   const key=(node,index)=>node.getAttribute('data-element')||`${node.tagName}:${node.getAttribute('class')||''}:${index}`;
@@ -13,4 +16,5 @@ export function patchSvg(container,markup){
   const retained=new Set(children);
   for(const node of [...current.children])if(!retained.has(node))node.remove();
   children.forEach((node,i)=>{if(current.children[i]!==node)current.insertBefore(node,current.children[i]||null);});
+  lastPaint.set(container,{root:current,markup});return true;
 }

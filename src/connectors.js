@@ -6,8 +6,10 @@ const vectors={n:{x:0,y:-1},e:{x:1,y:0},s:{x:0,y:1},w:{x:-1,y:0}};
 const point=p=>({x:round(p.x),y:round(p.y)});
 export const isConnector=e=>['line','arrow'].includes(e?.type)&&e.routing==='orthogonal';
 export function connectorData(element){
-  if(isConnector(element)){const {route,routeBlocked,...data}=element;return data;}
-  return element.children?{...element,children:element.children.map(connectorData)}:element;
+  if(isConnector(element)&&('route' in element||'routeBlocked' in element)){const {route,routeBlocked,...data}=element;return data;}
+  if(!element.children)return element;
+  const children=element.children.map(connectorData);
+  return children.some((child,i)=>child!==element.children[i])?{...element,children}:element;
 }
 export const canAttach=e=>['rect','ellipse','text','group'].includes(e?.type)&&!e.sourceId&&!e.targetId&&!['Relation BDD','Relation UML'].includes(e.label)&&!['system','fragment','activation','destruction'].includes(e.umlKind);
 

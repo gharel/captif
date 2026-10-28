@@ -12,7 +12,7 @@ import { strokeMarkup, mountStrokeUi } from './stroke-ui.js';
 import { createShape, resizeElement, duplicateElement } from './transforms.js';
 import { enclosedElements, duplicateSelection, moveSelection } from './selection.js';
 import { printDocument } from './print.js';
-import { findAnchor,attachEndpoint,isConnector,connectorData,moveBend } from './connectors.js';
+import { findAnchor,attachEndpoint,isConnector,moveBend } from './connectors.js';
 import { DEFAULT_DRAWING_STYLE,applyDrawingStyle } from './drawing-style.js';
 import { emptyBdd,emptyUml,isDiagram,editableDiagramText,editDiagramRows,diagramChoices } from './diagram-inline.js';
 import { alignElements,autoLayout,isLayoutBox } from './layout.js';
@@ -28,6 +28,9 @@ import { weakMemo, frameTask } from './performance.js';
 import { makeDraft, loadDraft, saveDraft, clearDraft } from './drafts.js';
 import { patchSvg } from './svg-patch.js';
 import { TEXT_SIZE } from './geometry.js';
+import { pageIndex } from './page-index.js';
+import { normalizeCopy } from './document-data.js';
+import { readPreferences,writePreferences,toolShortcut,TOOL_KEYS } from './workspace-preferences.js';
 
 const loaded = loadCopy();
 let history = createHistory(loaded.document || createDocument());
@@ -44,7 +47,8 @@ let strokeUi;
 let fontSize = 18;
 let zoom = 85;
 let fitZoom = true;
-let grid = true;
+const visualPreferences=readPreferences();
+let grid = visualPreferences.grid??true;
 let gesture = null;
 let hoveredAnchor = null;
 let pendingDiagramEdit = null;
@@ -75,17 +79,17 @@ const names = { select: 'Sélection', pen: 'Stylo', text: 'Texte', rect: 'Rectan
 const doc = () => history.present;
 const page = () => doc().pages.find(p => p.id === activePage) || doc().pages[0];
 const resolvedPage = () => resolvePageGeometry(page());
-const item = () => resolvedPage().elements.flatMap(e => [e, ...(e.children || [])]).find(e => e.id === selected);
-const group = () => page().elements.find(e => e.id === editingGroup && e.type === 'group');
-const parentGroup = elementId => page().elements.find(e => e.children?.some(child => child.id === elementId));
+const item = () => pageIndex(resolvedPage()).elements.get(selected);
+const group = () => {const value=pageIndex(page()).elements.get(editingGroup);return value?.type==='group'?value:null;};
+const parentGroup = elementId => pageIndex(page()).parents.get(elementId);
 function selectionIds(){
   if(!selected){multiSelection=[];return [];}
   if(!multiSelection.includes(selected))multiSelection=[selected];
-  const available=new Set(resolvedPage().elements.flatMap(e=>[e.id,...(e.children?.map(c=>c.id)||[])]));
+  const available=pageIndex(resolvedPage()).elements;
   multiSelection=multiSelection.filter(id=>available.has(id));
   return multiSelection;
 }
-function selectedElements(){const ids=new Set(selectionIds());return resolvedPage().elements.flatMap(e=>[e,...(e.children||[])]).filter(e=>ids.has(e.id));}
+function selectedElements(){const index=pageIndex(resolvedPage());return selectionIds().map(id=>index.elements.get(id)).filter(Boolean).sort((a,b)=>index.order.get(a.id)-index.order.get(b.id));}
 function setSelection(ids){multiSelection=[...new Set(ids)];selected=multiSelection.at(-1)||null;}
 function selectionCandidates(){return group()?resolvedPage().elements.find(e=>e.id===editingGroup)?.children||[]:resolvedPage().elements;}
 const locked = () => !ownsWorkspace || monitor.snapshot().status === 'finished';
@@ -105,11 +109,7 @@ monitor = createMonitor({ restored: loaded.session, onChange: () => { if (monito
 
 function change(next) {
   if (locked()) return;
-  next={...next,pages:next.pages.map(p=>p.id===activePage?{...p,elements:p.elements.map(e=>{
-    const wire=editableConnector(e);
-    if(e.type==='group'&&wire)e={...e,...(!e.sourceId&&!e.startPoint?{startPoint:{x:wire.x,y:wire.y}}:{}),...(!e.targetId&&!e.endPoint?{endPoint:{x:wire.x2,y:wire.y2}}:{})};
-    return connectorData(e);
-  })}:p)};
+  next=normalizeCopy(next,activePage);
   history = commit(history, next);
   if (!doc().pages.some(p => p.id === activePage)) activePage = doc().pages[0].id;
   if (!group()) editingGroup = null;
@@ -143,7 +143,7 @@ app.innerHTML = `
       </div>
       ${strokeMarkup()}
       </div>
-      <div class="canvas-breadcrumb"><button id="toggle-pages" class="sidebar-toggle" aria-label="Réduire la colonne des feuilles" title="Afficher ou réduire les feuilles" aria-expanded="true">${icon('pages')}</button><span id="canvas-location">Feuille 01</span><div class="group-context" id="group-context" hidden><span id="group-name"></span><button id="exit-group" class="text-button">Quitter le groupe <kbd class="shortcut-key">Échap</kbd></button></div><button id="toggle-library" class="sidebar-toggle" aria-label="Réduire la bibliothèque" title="Afficher ou réduire la bibliothèque" aria-expanded="true">${icon('layout')}</button></div>
+      <div class="canvas-breadcrumb"><button id="toggle-pages" class="sidebar-toggle" aria-label="Réduire la colonne des feuilles" title="Afficher ou réduire les feuilles" aria-expanded="true">${icon('pages')}</button><span id="canvas-location">Feuille 01</span><span id="selection-summary" class="selection-summary" role="status" hidden></span><div class="group-context" id="group-context" hidden><span id="group-name"></span><button id="exit-group" class="text-button">Quitter le groupe <kbd class="shortcut-key">Échap</kbd></button></div><button id="toggle-library" class="sidebar-toggle" aria-label="Réduire la bibliothèque" title="Afficher ou réduire la bibliothèque" aria-expanded="true">${icon('layout')}</button></div>
       <div class="paper-scroll"><div id="paper-shell"><div class="paper-header"><span id="paper-identity">Votre nom · Votre évaluation</span><span id="paper-number">01</span></div><div id="paper"></div><div class="paper-footer"><span>CAPTIF / COPIE D'ÉVALUATION</span><span id="paper-pagination"></span></div></div></div>
       <div class="desk-footer"><span id="tool-hint">MAJ + clic : sélectionner · ALT + glisser : dupliquer</span><div class="zoom-control"><button id="zoom-fit" title="Adapter la feuille à l'espace disponible">Ajuster</button><button id="zoom-out" aria-label="Réduire le zoom">−</button><span id="zoom-label">85 %</span><button id="zoom-in" aria-label="Augmenter le zoom">＋</button></div></div>
     </main>
@@ -267,6 +267,8 @@ document.querySelector('#edit-bdd').onclick = () => {
   if (target) openBddEditor(kind, target);
 };
 
+for(const [key,toolName] of Object.entries(TOOL_KEYS)){const button=document.querySelector(`[data-tool="${toolName}"]`);button.title=`${names[toolName]} (${key.toUpperCase()})`;button.setAttribute('aria-keyshortcuts',key);}
+
 const shapeTooltip=document.createElement('div');shapeTooltip.id='shape-tooltip';shapeTooltip.role='tooltip';shapeTooltip.hidden=true;document.body.append(shapeTooltip);
 const library=document.querySelector('#shape-library');
 function hideShapeTooltip(){shapeTooltip.hidden=true;library.querySelectorAll('[aria-describedby="shape-tooltip"]').forEach(e=>e.removeAttribute('aria-describedby'));}
@@ -286,14 +288,18 @@ library.addEventListener('keydown',event=>{
   if(offset!==undefined){event.preventDefault();buttons[Math.max(0,Math.min(buttons.length-1,index+offset))].focus();}
 });
 
-if(innerWidth<1000)document.querySelector('.workspace').classList.add('pages-collapsed');
-if(innerWidth<760)document.querySelector('.workspace').classList.add('library-collapsed');
+document.querySelector('.workspace').classList.toggle('pages-collapsed',!(visualPreferences.pages??innerWidth>=1000));
+document.querySelector('.workspace').classList.toggle('library-collapsed',!(visualPreferences.library??innerWidth>=760));
+document.querySelector('#grid').checked=grid;
+function saveVisualPreferences(){writePreferences({pages:!document.querySelector('.workspace').classList.contains('pages-collapsed'),library:!document.querySelector('.workspace').classList.contains('library-collapsed'),grid});}
 for(const [id,className,name] of [['toggle-pages','pages-collapsed','la colonne des feuilles'],['toggle-library','library-collapsed','la bibliothèque']]){
-  document.querySelector(`#${id}`).setAttribute('aria-expanded',String(!document.querySelector('.workspace').classList.contains(className)));
+  const collapsed=document.querySelector('.workspace').classList.contains(className);
+  document.querySelector(`#${id}`).setAttribute('aria-expanded',String(!collapsed));
+  document.querySelector(`#${id}`).setAttribute('aria-label',`${collapsed?'Afficher':'Réduire'} ${name}`);
   document.querySelector(`#${id}`).onclick=()=>{
     const collapsed=document.querySelector('.workspace').classList.toggle(className),button=document.querySelector(`#${id}`);
     button.setAttribute('aria-expanded',String(!collapsed));button.setAttribute('aria-label',`${collapsed?'Afficher':'Réduire'} ${name}`);
-    fitPaper();positionEditingControls();
+    saveVisualPreferences();fitPaper();positionEditingControls();
   };
 }
 
@@ -301,7 +307,7 @@ let draftTimer=null,draftRestored=false;
 function saveEditingDraft(){
   clearTimeout(draftTimer);
   if(!editingText||!ownsWorkspace||recoveryBlocked)return;
-  const field=document.querySelector('#inline-text'),target=page().elements.flatMap(e=>[e,...(e.children||[])]).find(e=>e.id===editingText.id);
+  const field=document.querySelector('#inline-text'),target=pageIndex(page()).elements.get(editingText.id);
   if(!field||!target)return;
   try{saveDraft(makeDraft(doc(),activePage,target,{text:field.value,format:editingText.format,language:editingText.language,fontSize:editingText.fontSize}));}
   catch{toast('Brouillon non enregistré : validez ou exportez votre saisie avant de fermer.',true);}
@@ -394,7 +400,7 @@ function commitTextEdit() {
   if (!editingText) return true;
   if (locked()) { cancelTextEdit(); return true; }
   const editor = document.querySelector('#inline-text');
-  const target = page().elements.flatMap(e => [e, ...(e.children || [])]).find(e => e.id === editingText.id);
+  const target = pageIndex(page()).elements.get(editingText.id);
   if (!target) { cancelTextEdit(); return true; }
   const patch = { text: editor.value, ...editingText.format,...(!target.role?{fontSize:editingText.fontSize}:{}) };
   if(target.width!==undefined)patch.height=elementBounds({...target,...patch}).height;
@@ -420,8 +426,8 @@ function beginTextEdit(elementId,recovered=null) {
   if (editingText && !commitTextEdit()) return;
   // The click completing a pointer gesture must not immediately close its editor.
   ignoreOutsideClickUntil=Date.now()+150;
-  const target = page().elements.flatMap(e => [e, ...(e.children || [])]).find(e => e.id === elementId && e.type === 'text');
-  if (!target) return;
+  const target = pageIndex(page()).elements.get(elementId);
+  if (!target||target.type!=='text') return;
   if(target.role==='code-language'){const content=parentGroup(target.id)?.children.find(c=>c.role==='code-content');if(content)beginTextEdit(content.id);return;}
   const parent = parentGroup(elementId);
   if (parent&&!isDiagram(parent)) editingGroup = parent.id;
@@ -431,7 +437,7 @@ function beginTextEdit(elementId,recovered=null) {
   const codeField=target.role==='code-content'&&isCodeBlock(parent);
   if(codeField)editingText.language=recovered?.language||parent.codeLanguage||'plaintext';
   document.querySelector('#text-context').hidden = true;
-  const displayed=resolvedPage().elements.flatMap(e=>[e,...(e.children||[])]).find(e=>e.id===target.id)||target;
+  const displayed=pageIndex(resolvedPage()).elements.get(target.id)||target;
   const scale = zoom / 100;
   const editor = document.createElement('div');
   editor.id = 'inline-editor'; editor.className = 'inline-editor';
@@ -562,7 +568,8 @@ function renderPaper() {
 function updateInspector() {
   const e = item();
   const count=selectionIds().length;
-  document.querySelector('.selection-card').hidden = !e||e.type!=='group'&&!editableConnector(e);
+  const summary=document.querySelector('#selection-summary');summary.hidden=count===0;setText('#selection-summary',count>1?`${count} éléments sélectionnés`:e?.type==='group'?(NODE_LABELS[e.umlKind]?.[0]||RELATION_LABELS[e.relationKind]?.[0]||e.label||'Groupe'):names[e?.type]||'Élément');
+  document.querySelector('.selection-card').hidden = !e||count>1||e.type!=='group'&&!editableConnector(e);
   document.querySelector('#selection-heading').hidden = !e;
   document.querySelector('#selection-type').textContent = e ? e.type === 'group' ? 'GROUPE SÉLECTIONNÉ' : group() ? 'DANS LE GROUPE' : 'OBJET SÉLECTIONNÉ' : '';
   document.querySelector('#selection-title').textContent = e ? e.label || names[e.type] || 'Objet' : '';
@@ -610,26 +617,28 @@ function updateHistory() {
   document.querySelector('#delete').disabled = !selected || locked();
 }
 
+let journalMarkup=null;
+function setText(selector,value){const node=document.querySelector(selector),text=String(value);if(node.textContent!==text)node.textContent=text;}
 function updateStats() {
   const s = monitor.snapshot();
-  document.querySelector('#session-time').textContent = duration(s.startedAt == null ? 0 : (s.endedAt ?? Date.now()) - s.startedAt);
-  document.querySelector('#absence-count').textContent = s.absenceCount;
-  document.querySelector('#away-time').textContent = duration(s.totalAwayMs);
-  document.querySelector('#fullscreen-count').textContent = s.fullscreenExits;
+  setText('#session-time',duration(s.startedAt == null ? 0 : (s.endedAt ?? Date.now()) - s.startedAt));
+  setText('#absence-count',s.absenceCount);
+  setText('#away-time',duration(s.totalAwayMs));
+  setText('#fullscreen-count',s.fullscreenExits);
   const observed=s.absenceCount>0;
   const absenceLabel=observed?`${s.absenceCount} absence${s.absenceCount>1?'s':''} observée${s.absenceCount>1?'s':''}`:'Aucune absence observée';
   for(const selector of ['#journal-indicator','#journal-status-indicator'])document.querySelector(selector).classList.toggle('has-absence',observed);
   document.querySelector('#journal-status').classList.toggle('has-absence',observed);
-  document.querySelector('#journal-status-text').textContent=absenceLabel;
+  setText('#journal-status-text',absenceLabel);
   document.querySelector('#journal-button').setAttribute('aria-label',`Journal — ${absenceLabel.toLowerCase()}`);
   document.querySelector('#journal-button').title=absenceLabel;
   if(document.querySelector('#journal-dialog').open){
     const content=document.querySelector('#journal-content'),scroll=content.querySelector('.journal-table')?.scrollTop||0;
-    content.innerHTML=journalHtml(false);
-    const table=content.querySelector('.journal-table');if(table)table.scrollTop=scroll;
+    const markup=journalHtml(false);
+    if(markup!==journalMarkup){content.innerHTML=markup;journalMarkup=markup;const table=content.querySelector('.journal-table');if(table)table.scrollTop=scroll;}
   }
-  document.querySelector('#session-label').textContent = { idle: 'Espace de préparation', active: 'Évaluation en cours', finished: 'Évaluation terminée' }[s.status];
-  document.querySelector('#session').innerHTML = { idle: "Démarrer l'évaluation →", active: 'Terminer la session ✓', finished: 'Session terminée ✓' }[s.status];
+  setText('#session-label',{ idle: 'Espace de préparation', active: 'Évaluation en cours', finished: 'Évaluation terminée' }[s.status]);
+  setText('#session', { idle: "Démarrer l'évaluation →", active: 'Terminer la session ✓', finished: 'Session terminée ✓' }[s.status]);
   document.querySelector('#session').disabled = s.status === 'finished' || !ownsWorkspace;
   const fullscreenButton = document.querySelector('#fullscreen');
   fullscreenButton.disabled = s.status === 'active' && Boolean(document.fullscreenElement);
@@ -808,7 +817,7 @@ document.querySelector('#bdd-form').onsubmit = event => {
   }
 };
 document.querySelector('#bdd-dialog').addEventListener('close', () => { bddEditing = null; updateTextContext(); });
-document.querySelector('#grid').onchange = e => { grid = e.target.checked; renderPaper(); };
+document.querySelector('#grid').onchange = e => { grid = e.target.checked; saveVisualPreferences();renderPaper(); };
 const settingsPopover=document.querySelector('#settings-popover');
 function positionSettings(){
   if(!settingsPopover.matches(':popover-open'))return;
@@ -1015,6 +1024,8 @@ for(const eventName of ['keydown','keyup'])window.addEventListener(eventName,e=>
 paperNode.ondblclick = event => event.preventDefault();
 window.addEventListener('keydown', e => {
   if (e.target.matches('input,textarea,select,[contenteditable]') || document.querySelector('dialog[open]')) return;
+  const shortcut=toolShortcut(e,Boolean(editingText)||e.repeat);
+  if(shortcut&&!gesture&&!locked()){e.preventDefault();setTool(shortcut);return;}
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); travel(e.shiftKey ? redo : undo); }
   if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
   if (e.key === 'Enter' && selectionIds().length===1 && item()?.type === 'group') { e.preventDefault(); enterGroup(selected); }
