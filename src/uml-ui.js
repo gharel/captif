@@ -1,7 +1,7 @@
 import { createUmlNode, readUmlNode, updateUmlNode, isUmlNode } from './uml-nodes.js';
 import { createUmlRelation, readUmlRelation, updateUmlRelation, isUmlRelation } from './uml-relations.js';
 import { escape as esc } from './render.js';
-import { diagramPreview } from './diagram-preview.js';
+import { shapeIcon } from './shape-icon.js';
 
 export const NODE_LABELS = {
   class: ['Classe', 'Attributs et opérations'], 'abstract-class': ['Classe abstraite', 'Nom en italique'], interface: ['Interface', 'Contrat «interface»'],
@@ -24,8 +24,17 @@ export const UML_DIAGRAMS = {
   sequence: { label: 'Diagramme de séquence', description: 'Participants et échanges dans l’ordre du temps.', nodes: ['participant','activation','fragment','destruction','note'], relations: ['message-sync','message-async','message-return','message-self'] },
 };
 export function umlPaletteMarkup() {
-  return `<div class="library-tabs" role="tablist" aria-label="Bibliothèque de composants"><button id="library-uml" role="tab" aria-selected="true" aria-controls="uml-palette">UML</button><button id="library-bdd" role="tab" aria-selected="false" aria-controls="bdd-palette">BDD</button></div>
-  <section id="uml-palette" role="tabpanel" aria-labelledby="library-uml"><label class="field-label" for="uml-diagram">Type de diagramme</label><select id="uml-diagram">${Object.entries(UML_DIAGRAMS).map(([key,d])=>`<option value="${key}">${d.label}</option>`).join('')}</select><p id="uml-diagram-hint" class="palette-note"></p><div class="sidebar-heading"><span>ÉLÉMENTS</span><span class="tag" id="uml-element-count"></span></div><div id="uml-node-buttons" class="uml-node-grid"></div><details class="uml-relations" open><summary>Relations et messages <span id="uml-relation-count"></span></summary><div id="uml-relation-buttons"></div></details></section>`;
+  const names={note:'Note à coin plié',class:'Boîte à trois compartiments','abstract-class':'Boîte à trois compartiments — titre en italique',interface:'Boîte à compartiments — interface',object:'Boîte à en-tête souligné',actor:'Personnage',usecase:'Ellipse',system:'Cadre avec contenu',participant:'Boîte à ligne de vie',activation:'Barre d’activation',fragment:'Cadre à onglet et séparateur',destruction:'Croix de fin'};
+  const button=(attrs,name,svg)=>`<button type="button" class="shape-icon-button" ${attrs} aria-label="${esc(name)}" title="${esc(name)}">${svg}</button>`;
+  const nodes=['note','class','object','abstract-class','interface','actor','usecase','system','participant','activation','fragment','destruction'];
+  return `<section id="shape-library" aria-label="Bibliothèque de formes"><h2 class="shape-section-title">Formes</h2><div class="shape-icon-grid" role="group" aria-label="Insérer une forme">
+    ${button('id="entity"','Boîte à en-tête et séparateur',shapeIcon('entity'))}
+    ${nodes.map(kind=>button(`data-uml-node="${kind}"`,names[kind],shapeIcon(kind))).join('')}
+    ${button('id="association"','Ellipse avec séparateur',shapeIcon('association'))}
+    </div><h2 class="shape-section-title">Connexions</h2><div class="shape-icon-grid connection-icon-grid" role="group" aria-label="Insérer une connexion">
+    ${button('id="relation"','Lien avec cardinalités',shapeIcon('relation'))}
+    ${Object.keys(RELATION_LABELS).map(kind=>button(`data-uml-relation="${kind}"`,`${RELATION_LABELS[kind][0]} — ${RELATION_LABELS[kind][1]}`,relationPreview(kind))).join('')}
+    </div></section>`;
 }
 
 export function umlDialogMarkup() {
@@ -49,24 +58,8 @@ export function mountUmlUi({ getPage, isLocked, onSave, onCreate, beforeOpen = (
   const $ = id => document.getElementById(id);
   const show = (id, visible) => { $(id).hidden = !visible; $(id).querySelectorAll('input,textarea,select').forEach(el=>{el.disabled=!visible;}); };
   const members = value => value.split('\n').map(line=>line.trim()).filter(Boolean);
-  function renderPalette() {
-    const diagram = UML_DIAGRAMS[$('uml-diagram').value];
-    $('uml-diagram-hint').textContent = diagram.description;
-    $('uml-element-count').textContent = diagram.nodes.length;
-    $('uml-relation-count').textContent = diagram.relations.length;
-    $('uml-node-buttons').innerHTML = diagram.nodes.map(kind=>`<button type="button" class="uml-node-button" data-uml-node="${kind}">${diagramPreview(kind)}<strong>${NODE_LABELS[kind][0]}</strong><small>${NODE_LABELS[kind][1]}</small></button>`).join('');
-    $('uml-relation-buttons').innerHTML = diagram.relations.map(kind=>`<button type="button" class="uml-relation-button" data-uml-relation="${kind}"><span class="uml-relation-preview" data-kind="${kind}" aria-hidden="true">${relationPreview(kind)}</span><span><strong>${RELATION_LABELS[kind][0]}</strong><small>${RELATION_LABELS[kind][1]}</small></span><span>＋</span></button>`).join('');
-    syncLocked();
-  }
   function syncLocked() { document.querySelectorAll('[data-uml-node],[data-uml-relation]').forEach(button=>{button.disabled=isLocked();}); }
-  function library(tab) {
-    $('uml-palette').hidden=tab!=='uml'; $('bdd-palette').hidden=tab!=='bdd';
-    $('library-uml').setAttribute('aria-selected',tab==='uml'); $('library-bdd').setAttribute('aria-selected',tab==='bdd');
-  }
-  $('library-uml').onclick=()=>library('uml'); $('library-bdd').onclick=()=>library('bdd');
-  for (const button of [$('library-uml'),$('library-bdd')]) button.onkeydown=event=>{if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();const next=button.id==='library-uml'?'bdd':'uml';library(next);$(`library-${next}`).focus();}};
-  $('uml-diagram').onchange=renderPalette;
-  $('uml-palette').onclick=event=>{const node=event.target.closest('[data-uml-node]'),rel=event.target.closest('[data-uml-relation]');if(!node&&!rel)return;if(onCreate){if(!isLocked()&&beforeOpen())onCreate(node?.dataset.umlNode||rel.dataset.umlRelation,Boolean(rel));return;}if(node)open(node.dataset.umlNode);if(rel)open(rel.dataset.umlRelation,null,true);};
+  $('shape-library').onclick=event=>{const node=event.target.closest('[data-uml-node]'),rel=event.target.closest('[data-uml-relation]');if(!node&&!rel)return;if(onCreate){if(!isLocked()&&beforeOpen())onCreate(node?.dataset.umlNode||rel.dataset.umlRelation,Boolean(rel));return;}if(node)open(node.dataset.umlNode);if(rel)open(rel.dataset.umlRelation,null,true);};
   function nodeOptions(filter = ()=>true) {
     return getPage().elements.filter(e=>isUmlNode(e)&&filter(e)).map(e=>({id:e.id,name:readUmlNode(e).name||NODE_LABELS[e.umlKind]?.[0]||'Élément'}));
   }
@@ -141,13 +134,14 @@ export function mountUmlUi({ getPage, isLocked, onSave, onCreate, beforeOpen = (
     }catch(error){$('uml-error').textContent=error.message;$('uml-error').hidden=false;}
   };
   $('uml-dialog').addEventListener('close',()=>{state=null;});
-  renderPalette();
+  syncLocked();
   return {syncLocked,edit(group){if(isUmlRelation(group))open(readUmlRelation(group).kind,group,true);else if(isUmlNode(group))open(readUmlNode(group).kind,group);}};
 }
 
 function relationPreview(kind) {
+  if(kind==='message-self')return '<svg viewBox="0 0 48 24" aria-hidden="true"><path d="M8 4h26v16H8m6-5-6 5 6 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
   const dashed=['realization','dependency','include','extend','message-return'].includes(kind);
   const triangle=['generalization','realization','message-sync'].includes(kind);
   const diamond=['aggregation','composition'].includes(kind);
-  return `<svg viewBox="0 0 48 24" width="48" height="24"><path d="M4 12H42" fill="none" stroke="currentColor" stroke-width="1.5"${dashed?' stroke-dasharray="4 3"':''}/>${diamond?`<path d="m4 12 8-5 8 5-8 5z" stroke="currentColor" fill="${kind==='composition'?'currentColor':'white'}"/>`:triangle?`<path d="m42 12-10-6v12z" stroke="currentColor" fill="${kind==='message-sync'?'currentColor':'white'}"/>`:['association','object-link'].includes(kind)?'':'<path d="m34 6 8 6-8 6" fill="none" stroke="currentColor" stroke-width="1.5"/>'}</svg>`;
+  return `<svg viewBox="0 0 48 24" aria-hidden="true"><path d="M4 12H42" fill="none" stroke="currentColor" stroke-width="1.5"${dashed?' stroke-dasharray="4 3"':''}/>${diamond?`<path d="m4 12 8-5 8 5-8 5z" stroke="currentColor" fill="${kind==='composition'?'currentColor':'white'}"/>`:triangle?`<path d="m42 12-10-6v12z" stroke="currentColor" fill="${kind==='message-sync'?'currentColor':'white'}"/>`:['association','object-link'].includes(kind)?'':'<path d="m34 6 8 6-8 6" fill="none" stroke="currentColor" stroke-width="1.5"/>'}</svg>`;
 }

@@ -16,7 +16,6 @@ import { DEFAULT_DRAWING_STYLE,applyDrawingStyle } from './drawing-style.js';
 import { emptyBdd,emptyUml,isDiagram,editableDiagramText,editDiagramRows,diagramChoices,diagramPlaceholder } from './diagram-inline.js';
 import { alignElements,autoLayout,isLayoutBox } from './layout.js';
 import { editableConnector,resolveDiagramConnections } from './diagram-connections.js';
-import { diagramPreview } from './diagram-preview.js';
 
 const loaded = loadCopy();
 let history = createHistory(loaded.document || createDocument());
@@ -141,15 +140,6 @@ app.innerHTML = `
       <div class="sidebar-heading" id="selection-heading" hidden><span>PROPRIÉTÉS</span><span>⌘</span></div>
       <div class="selection-card" hidden><span class="selection-type" id="selection-type"></span><h2 id="selection-title"></h2><button id="edit-bdd" class="button secondary w-full mt-3" hidden>Options BDD</button><button id="edit-uml" class="button secondary w-full mt-3" hidden>Options UML</button><button id="enter-group" class="button secondary w-full mt-3" hidden>Entrer dans le groupe</button><button id="reset-route" class="button secondary w-full mt-3" hidden>Parcours automatique</button></div>
       ${umlPaletteMarkup()}
-      <section id="bdd-palette" role="tabpanel" aria-labelledby="library-bdd" hidden>
-      <div class="sidebar-heading mt-7"><span>MODÉLISATION BDD</span><span class="tag">MCD / MLD</span></div>
-      <div class="uml-node-grid bdd-node-grid">
-      <button class="uml-node-button" id="entity">${diagramPreview('entity')}<strong>Entité / table</strong><small>Attributs, types et clés</small></button>
-      <button class="uml-node-button" id="association">${diagramPreview('association')}<strong>Association</strong><small>Nom et attributs</small></button>
-      <button class="uml-node-button bdd-link-button" id="relation">${diagramPreview('relation')}<strong>Lien et cardinalités</strong><small>0,1 · 1,1 · 0,N · 1,N</small></button>
-      </div>
-      <p class="palette-note">Reliez deux éléments : les liens suivent leurs déplacements. Cliquez sur les cellules pour les remplir directement.</p>
-      </section>
     </aside>
   </div>
   <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>

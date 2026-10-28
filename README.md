@@ -44,7 +44,7 @@ Le dessin exige un pointeur ; les formulaires, l'ajout de texte et les commandes
 
 ## Sauvegarde et suivi
 
-La bibliothèque **UML** propose quatre palettes : classes, objets, cas d'utilisation et séquences. Cliquer sur un élément ou une relation l'insère immédiatement, puis remplir son contenu directement sur la feuille. Les attributs et méthodes acceptent une ligne par entrée. Les relations attachées suivent leurs éléments ; les messages, activations et destructions se positionnent sur les lignes de vie. L'onglet **BDD** conserve les entités, associations et cardinalités. Voir [docs/DIRECT_DIAGRAMS.md](docs/DIRECT_DIAGRAMS.md).
+La bibliothèque unique affiche toutes les formes complexes et connexions sous forme d'icônes, sans onglet ni sélecteur de diagramme. Survoler une icône pour lire sa description : note à coin plié, boîte à en-tête et séparateur, boîte à trois compartiments, ellipse, personnage, ligne de vie, etc. Les boutons sont aussi nommés pour les lecteurs d'écran et activables au clavier. Cliquer insère un élément vide, à remplir directement sur la feuille. Les attributs et méthodes acceptent une ligne par entrée. Les relations attachées suivent leurs éléments ; les messages, activations et destructions se positionnent sur les lignes de vie. Voir [docs/ICON_PALETTE.md](docs/ICON_PALETTE.md).
 
 Sous les outils, **Style du tracé** ouvre les couleurs, l'épaisseur et les motifs plein, tirets, pointillés ou mixte avec aperçu. Les réglages modifient la sélection et les prochains tracés.
 
