@@ -26,6 +26,12 @@ export function elementSvg(e, selected = false,editHints=false) {
   if (e.type === 'group') {
     const themedChildren=e.children.map(child=>{
       const next={...child};
+      if(child.type==='text'&&!child.text.trim()&&['uml-name','uml-attributes','uml-operations','uml-condition'].includes(child.role)){
+        const bounds=elementBounds(child);
+        const following=e.children.filter(c=>c.type==='text'&&c.y>child.y).map(c=>elementBounds(c).y).sort((a,b)=>a-b)[0];
+        const end=Math.min(following??e.y+e.height-8,['uml-name','uml-condition'].includes(child.role)?bounds.y+36:Infinity);
+        next._hitBounds={x:e.x+12,y:bounds.y,width:Math.max(1,e.width-24),height:Math.max(bounds.height,end-bounds.y-4)};
+      }
       if(child.type==='rect'&&child.role==='uml-frame'&&['state','action'].includes(e.umlKind))next._radius=e.umlKind==='action'?Math.min(child.height/2,32):12;
       if(child.role==='header')next.fill='#fff6d5';
       if(child.type==='rect'&&child.role==='uml-decoration'&&child.width===e.width&&child.fill!=='none')next.fill=e.umlKind==='object'?'#f0eaff':'#e8efff';
@@ -65,7 +71,8 @@ export function elementSvg(e, selected = false,editHints=false) {
       ? `<rect class="relation-label-background" x="${bounds.x - 4}" y="${bounds.y - 2}" width="${bounds.width + 8}" height="${bounds.height + 4}" rx="3" fill="#ffffff" stroke="none" pointer-events="none"/>` : '';
     const textX=e._centerX??e.x;
     const text = e.text.trim()||placeholder ? `<text${placeholder?' class="diagram-placeholder"':''} x="${textX}" y="${e.y}"${e._centerX!==undefined?' text-anchor="middle"':''} font-size="${size}" fill="${placeholder?'#9ca3b6':color}" font-family="${e.role?'Arial, Helvetica, sans-serif':'ui-monospace, monospace'}"${e.bold ? ' font-weight="700"' : ''}${e.italic ? ' font-style="italic"' : ''}${e.underline ? ' text-decoration="underline"' : ''}>${lines.map((line, i) => `<tspan x="${textX}" dy="${i ? size * 1.5 : 0}">${escape(line) || ' '}</tspan>`).join('')}</text>` : '';
-    inner = `${background}<rect class="text-hit" x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="transparent" stroke="none"/>${text}`;
+    const hit=e._hitBounds||bounds;
+    inner = `${background}<rect class="text-hit" x="${hit.x}" y="${hit.y}" width="${hit.width}" height="${hit.height}" fill="transparent" stroke="none"/>${text}`;
   }
   const pointerStyle = ['Relation BDD','Relation UML'].includes(e.label) ? ' style="pointer-events:none"' : ['relation-line','uml-relation-line'].includes(e.role) ? ' style="pointer-events:visiblePainted"' : '';
   return `<g data-element="${escape(e.id)}"${e.type === 'group' ? ` data-group="${escape(e.id)}" role="group" aria-label="${escape(e.label)}"` : ''} class="drawing-element${e.type === 'group' ? ' group-element' : ''}"${pointerStyle}>${inner}${selected ? outline(e, 'selection-outline') : ''}</g>`;

@@ -6,7 +6,7 @@ import { createEntityBox, isEntityBox } from './entity-box.js';
 const blankAttribute=()=>({name:'',type:'',key:'',nullable:false});
 export const isDiagram=e=>e?.type==='group'&&['Entité BDD','Association BDD','Relation BDD','Classe UML','Élément UML','Relation UML'].includes(e.label);
 export const editableDiagramText=e=>e?.type==='text'&&Boolean(e.role)&&!['column-label','empty-label'].includes(e.role);
-export function diagramPlaceholder(e){return ({'entity-name':'Nom de l’entité','association-name':'Nom de l’association','attribute-name':'attribut','attribute-type':'type','attribute-key':'—','uml-name':'Nom','uml-attributes':'Ajouter des attributs','uml-operations':'Ajouter des méthodes','uml-condition':'[condition]','relation-name':'Relation','uml-relation-name':'Libellé','uml-source-label':'Rôle / multiplicité','uml-target-label':'Rôle / multiplicité'})[e.role]||'';}
+export function diagramPlaceholder(){return '';}
 export function emptyBdd(kind,elements=[],preferred=[]){
   if(kind==='entity')return createEntityBox();
   if(kind==='association')return createAssociation({name:'',attributes:[]});
