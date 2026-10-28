@@ -139,7 +139,7 @@ export function validateDocument(value) {
       if (element.role !== undefined) {
         const roles = ['entity-name', 'attribute-name', 'attribute-type', 'attribute-key', 'attribute-nullable', 'association-name', 'relation-name', 'cardinality-left', 'cardinality-right', 'frame', 'header', 'separator', 'column-label', 'empty-label', 'relation-line', 'uml-name', 'uml-stereotype', 'uml-attributes', 'uml-operations', 'uml-condition', 'uml-frame', 'uml-decoration', 'uml-relation-line', 'uml-relation-name', 'uml-source-label', 'uml-target-label', 'uml-marker'];
         clean.role = string(element.role, 40);
-        if (!roles.includes(clean.role)) fail();
+        if (!roles.includes(clean.role) && !['box-title','box-body'].includes(clean.role)) fail();
       }
       if (element.rowId !== undefined) {
         clean.rowId = string(element.rowId, 128);

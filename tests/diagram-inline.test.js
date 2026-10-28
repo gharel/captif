@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { emptyBdd,emptyUml,editDiagramRows,diagramPlaceholder } from '../src/diagram-inline.js';
-import { readEntity } from '../src/bdd.js';
+import { readEntity,createEntity } from '../src/bdd.js';
+import { readEntityBox } from '../src/entity-box.js';
 import { readUmlNode } from '../src/uml-nodes.js';
 import { createDocument,validateDocument } from '../src/model.js';
 import { pageSvg } from '../src/render.js';
@@ -10,10 +11,9 @@ import { moveBend } from '../src/connectors.js';
 import { resolveRelations,createRelation } from '../src/bdd.js';
 import { translateElement } from '../src/geometry.js';
 
-test('un clic de palette crée une entité vide avec une première ligne éditable',()=>{
-  const entity=emptyBdd('entity');assert.equal(readEntity(entity).name,'');
-  assert.deepEqual(readEntity(entity).attributes,[{name:'',type:'',key:'',nullable:false}]);
-  assert.ok(entity.children.some(c=>c.role==='attribute-name'));
+test('un clic de palette crée une entité vide à contenu libre',()=>{
+  const entity=emptyBdd('entity');assert.deepEqual(readEntityBox(entity),{title:'',body:''});
+  assert.ok(entity.children.some(c=>c.role==='box-body'));
 });
 test('les composants UML vides ne contiennent pas de données d’exemple',()=>{
   for(const kind of ['class','abstract-class','interface','object','actor','usecase','participant','note']){
@@ -22,16 +22,16 @@ test('les composants UML vides ne contiennent pas de données d’exemple',()=>{
   }
 });
 test('ajouter et retirer une ligne BDD conserve le groupe et ses champs existants',()=>{
-  const initial=emptyBdd('entity'),added=editDiagramRows(initial,'add-attribute');
+  const initial=createEntity({attributes:[{name:'',type:'',key:'',nullable:false}]}),added=editDiagramRows(initial,'add-attribute');
   assert.equal(added.id,initial.id);assert.equal(readEntity(added).attributes.length,2);
   const rowId=added.children.filter(c=>c.role==='attribute-name')[1].rowId;
   const removed=editDiagramRows(added,'remove-row',rowId);assert.equal(readEntity(removed).attributes.length,1);
 });
-test('les repères des cellules vides restent des aides d’édition non imprimables',()=>{
+test('les nouveaux champs libres restent vides à l’écran comme à l’impression',()=>{
   const group=emptyBdd('entity'),doc=createDocument();doc.pages[0].elements=[group];
-  assert.equal(diagramPlaceholder(group.children.find(c=>c.role==='entity-name')),'Nom de l’entité');
-  const saved=validateDocument(doc);assert.equal(readEntity(saved.pages[0].elements[0]).name,'');
-  assert.match(pageSvg(doc.pages[0],{editHints:true}),/Nom de l’entité/);
+  assert.equal(diagramPlaceholder(group.children.find(c=>c.role==='box-title')),'');
+  const saved=validateDocument(doc);assert.equal(readEntityBox(saved.pages[0].elements[0]).title,'');
+  assert.doesNotMatch(pageSvg(doc.pages[0],{editHints:true}),/Nom de l’entité/);
   assert.doesNotMatch(pageSvg(doc.pages[0]),/Nom de l’entité/);
 });
 test('les passages manuels des relations BDD survivent à la sauvegarde et à la reprise',()=>{

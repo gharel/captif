@@ -1,13 +1,14 @@
-import { createEntity,createAssociation,createRelation,readEntity,readAssociation,updateEntity,updateAssociation } from './bdd.js';
+import { createAssociation,createRelation,readEntity,readAssociation,updateEntity,updateAssociation } from './bdd.js';
 import { createUmlNode,readUmlNode,updateUmlNode,isUmlNode } from './uml-nodes.js';
 import { createUmlRelation } from './uml-relations.js';
+import { createEntityBox, isEntityBox } from './entity-box.js';
 
 const blankAttribute=()=>({name:'',type:'',key:'',nullable:false});
 export const isDiagram=e=>e?.type==='group'&&['Entité BDD','Association BDD','Relation BDD','Classe UML','Élément UML','Relation UML'].includes(e.label);
 export const editableDiagramText=e=>e?.type==='text'&&Boolean(e.role)&&!['column-label','empty-label'].includes(e.role);
 export function diagramPlaceholder(e){return ({'entity-name':'Nom de l’entité','association-name':'Nom de l’association','attribute-name':'attribut','attribute-type':'type','attribute-key':'—','uml-name':'Nom','uml-attributes':'Ajouter des attributs','uml-operations':'Ajouter des méthodes','uml-condition':'[condition]','relation-name':'Relation','uml-relation-name':'Libellé','uml-source-label':'Rôle / multiplicité','uml-target-label':'Rôle / multiplicité'})[e.role]||'';}
 export function emptyBdd(kind,elements=[],preferred=[]){
-  if(kind==='entity')return createEntity({name:'',attributes:[blankAttribute()]});
+  if(kind==='entity')return createEntityBox();
   if(kind==='association')return createAssociation({name:'',attributes:[]});
   const nodes=elements.filter(e=>['Entité BDD','Association BDD'].includes(e.label));
   const chosen=nodes.filter(e=>preferred.includes(e.id));const ends=chosen.length>=2?chosen:nodes;
@@ -34,6 +35,7 @@ export function emptyUml(kind,{relation=false,elements=[],preferred=[]}={}){
 }
 export function diagramActions(group,selected){
   const actions=[];
+  if(isEntityBox(group))return actions;
   if(['Entité BDD','Association BDD'].includes(group?.label)){
     actions.push({action:'add-attribute',label:'＋ Attribut'});
     if(group.children.some(c=>c.id===selected&&c.rowId))actions.push({action:'remove-row',label:'− Ligne'});

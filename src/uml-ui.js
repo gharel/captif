@@ -35,11 +35,12 @@ export const UML_DIAGRAMS = {
   activity: {label:'Activité',description:'Actions et flux.',nodes:['action','initial','final','flow-final','decision','fork','join','swimlane'],relations:['flow']},
   structure: {label:'Structure et paquetages',description:'Conteneurs et composants.',nodes:['package','component','artifact','database'],relations:['dependency']},
 };
+export const PALETTE_NODE_KINDS=UML_NODE_KINDS.filter(kind=>!['abstract-class','interface'].includes(kind));
 export function umlPaletteMarkup() {
   const button=(attrs,name,svg)=>`<button type="button" class="shape-icon-button" ${attrs} aria-label="${esc(name)}" title="${esc(name)}">${svg}</button>`;
-  const nodes=UML_NODE_KINDS;
+  const nodes=PALETTE_NODE_KINDS;
   return `<section id="shape-library" aria-label="Bibliothèque de formes"><h2 class="shape-section-title">Formes</h2><div class="shape-icon-grid" role="group" aria-label="Insérer une forme">
-    ${button('id="entity"','Entité / table — MCD / MLD',shapeIcon('entity'))}
+    ${button('id="entity"','Entité',shapeIcon('entity'))}
     ${nodes.map(kind=>button(`data-uml-node="${kind}"`,NODE_LABELS[kind][0],shapeIcon(kind))).join('')}
     ${button('id="association"','Association — MCD',shapeIcon('association'))}
     </div><h2 class="shape-section-title">Connexions</h2><div class="shape-icon-grid connection-icon-grid" role="group" aria-label="Insérer une connexion">

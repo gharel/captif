@@ -2,7 +2,7 @@
 export function shapeIcon(kind) {
   const box='<rect x="4" y="4" width="24" height="24" rx="2"/>';
   let body;
-  if(kind==='entity')body=box+'<path d="M4 11h24M10 15h6m4 0h4M10 20h6m4 0h4M10 25h6m4 0h4"/>';
+  if(kind==='entity')body=box+'<path d="M4 11h24"/>';
   else if(['class','abstract-class','interface','object'].includes(kind))body=box+`<path d="M4 12h24${kind==='object'?'':'M4 20h24'}"/>`+(kind==='abstract-class'?'<path d="m15 6-2 4m2-4h4m-6 4h4"/>':kind==='interface'?'<circle cx="16" cy="8" r="1.5"/>':kind==='object'?'<path d="M12 9h8"/>':'');
   else if(kind==='note')body='<path d="M5 3h16l6 6v20H5Z"/><path d="M21 3v7h6M10 15h12M10 20h12M10 25h8"/>';
   else if(['association','usecase'].includes(kind))body='<ellipse cx="16" cy="16" rx="13" ry="9"/>'+(kind==='association'?'<path d="M4 16h24"/>':'');

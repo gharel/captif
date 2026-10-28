@@ -17,6 +17,7 @@ import { emptyBdd,emptyUml,isDiagram,editableDiagramText,editDiagramRows,diagram
 import { alignElements,autoLayout,isLayoutBox } from './layout.js';
 import { editableConnector,resolveDiagramConnections } from './diagram-connections.js';
 import { TEXT_STYLES, textFormatMarkup, toggleTextFormat, textStyleIcon, alignmentIcon } from './editor-controls.js';
+import { isEntityBox, updateEntityBox } from './entity-box.js';
 
 const loaded = loadCopy();
 let history = createHistory(loaded.document || createDocument());
@@ -260,6 +261,7 @@ function cancelTextEdit() {
 function reframeGroup(next, parentId) {
   const parent = next.pages.find(p => p.id === activePage)?.elements.find(e => e.id === parentId);
   if (!parent) return next;
+  if(isEntityBox(parent)){try{return validateDocument(updateElement(next,activePage,parentId,updateEntityBox(parent)));}catch{return null;}}
   if(isUmlNode(parent)) { try{return validateDocument(updateElement(next,activePage,parentId,{...updateUmlNode(parent,readUmlNode(parent)),...(parent.sourceId?{sourceId:parent.sourceId,offset:parent.offset}:{})}));}catch{return null;} }
   if(isUmlRelation(parent)) { try{return validateDocument(updateElement(next,activePage,parentId,updateUmlRelation(parent,readUmlRelation(parent))));}catch{return null;} }
   if (parent.label === 'Entité BDD' && parent.children.some(e => e.role === 'entity-name')) {
@@ -353,7 +355,7 @@ function beginTextEdit(elementId) {
   editor.style.left = `${left}px`;
   editor.style.top = `${Math.max(8, bounds.y * scale - 8)}px`;
   editor.style.width = `${Math.min(W * scale - left - 12, Math.max(240, bounds.width * scale + 24))}px`;
-  const choices=diagramChoices(target,parent),single=Boolean(target.role)&&!['uml-attributes','uml-operations'].includes(target.role);
+  const choices=diagramChoices(target,parent),single=Boolean(target.role)&&!['uml-attributes','uml-operations','box-body'].includes(target.role);
   editor.style.top = `${Math.max(8,bounds.y * scale - (choices?8:48))}px`;
   editor.classList.toggle('diagram-cell-editor',Boolean(target.role));
   const control=choices?`<select id="inline-text">${choices.map(([value,label])=>`<option value="${esc(value)}">${esc(label)}</option>`).join('')}</select>`:single?'<input id="inline-text" type="text" maxlength="80" autocomplete="off" spellcheck="false" />':'<textarea id="inline-text" maxlength="10000" spellcheck="false"></textarea>';
@@ -387,7 +389,7 @@ function beginTextEdit(elementId) {
 }
 
 function focusDiagramName(groupId){
-  const owner=page().elements.find(e=>e.id===groupId),field=owner?.children?.find(e=>['entity-name','association-name','uml-name','relation-name','uml-relation-name'].includes(e.role));
+  const owner=page().elements.find(e=>e.id===groupId),field=owner?.children?.find(e=>['box-title','entity-name','association-name','uml-name','relation-name','uml-relation-name'].includes(e.role));
   if(field)beginTextEdit(field.id);
 }
 function focusNextDiagramField(fieldId,backwards=false){
@@ -451,7 +453,7 @@ function updateInspector() {
   document.querySelector('#enter-group').hidden = e?.type !== 'group';
   document.querySelector('#enter-group').disabled = locked();
   const bdd = e?.type === 'group' ? e : parentGroup(selected);
-  const hasBdd = ['Entité BDD', 'Association BDD', 'Relation BDD'].includes(bdd?.label);
+  const hasBdd = ['Entité BDD', 'Association BDD', 'Relation BDD'].includes(bdd?.label)&&!isEntityBox(bdd);
   document.querySelector('#edit-bdd').hidden = !hasBdd;
   document.querySelector('#edit-bdd').disabled = locked();
   const uml=Boolean(isUmlNode(bdd)||isUmlRelation(bdd));
