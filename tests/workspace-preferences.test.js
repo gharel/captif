@@ -23,3 +23,8 @@ test('un accès au stockage interdit ne bloque jamais l’atelier',t=>{
   t.after(()=>{if(original)Object.defineProperty(globalThis,'localStorage',original);else delete globalThis.localStorage;});
   assert.deepEqual(readPreferences(),{});assert.doesNotThrow(()=>writePreferences({grid:true}));
 });
+test('la famille ouverte est mémorisée uniquement si elle appartient au catalogue',()=>{
+  let value;const storage={getItem:()=>value,setItem:(_,v)=>value=v};
+  writePreferences({family:'sequence'},storage);assert.equal(readPreferences(storage).family,'sequence');
+  writePreferences({family:'inconnue'},storage);assert.deepEqual(readPreferences(storage),{});
+});

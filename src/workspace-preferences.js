@@ -1,5 +1,6 @@
+import { DIAGRAM_GROUPS } from './palette-groups.js';
 const KEY='captif-workspace-v1';
-const clean=value=>Object.fromEntries(['pages','library','grid'].filter(k=>typeof value?.[k]==='boolean').map(k=>[k,value[k]]));
+const clean=value=>({...Object.fromEntries(['pages','library','grid'].filter(k=>typeof value?.[k]==='boolean').map(k=>[k,value[k]])),...(DIAGRAM_GROUPS.some(g=>g.id===value?.family)?{family:value.family}:{})});
 export function readPreferences(storage){try{return clean(JSON.parse((storage??globalThis.localStorage).getItem(KEY)||'{}'));}catch{return {};}}
 export function writePreferences(value,storage){try{(storage??globalThis.localStorage).setItem(KEY,JSON.stringify(clean(value)));}catch{ /* Visual preferences must never block the document. */ }}
 export const TOOL_KEYS=Object.freeze({v:'select',p:'pen',t:'text',r:'rect',o:'ellipse',l:'line',a:'arrow'});

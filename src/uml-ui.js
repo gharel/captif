@@ -2,6 +2,7 @@ import { readUmlNode, updateUmlNode, isUmlNode, UML_NODE_KINDS } from './uml-nod
 import { readUmlRelation, updateUmlRelation, isUmlRelation } from './uml-relations.js';
 import { escape as esc } from './render.js';
 import { shapeIcon } from './shape-icon.js';
+import { DIAGRAM_GROUPS, DEFAULT_FAMILY } from './palette-groups.js';
 
 export const NODE_LABELS = {
   class: ['Classe', 'Attributs et opérations'], 'abstract-class': ['Classe abstraite', 'Nom en italique'], interface: ['Interface', 'Contrat «interface»'],
@@ -47,16 +48,10 @@ export const UML_DIAGRAMS = {
 export const PALETTE_NODE_KINDS=UML_NODE_KINDS.filter(kind=>!['abstract-class','interface'].includes(kind));
 export function umlPaletteMarkup() {
   const button=(attrs,name,svg)=>`<button type="button" class="shape-icon-button" ${attrs} aria-label="${esc(name)}" title="${esc(name)}">${svg}</button>`;
-  const nodes=PALETTE_NODE_KINDS;
-  return `<section id="shape-library" aria-label="Bibliothèque de formes"><h2 class="shape-section-title">Formes <span class="palette-total">${nodes.length+3}</span></h2><div class="shape-icon-grid" role="group" aria-label="Insérer une forme">
-    ${button('id="code-block"','Bloc de code',shapeIcon('code-block'))}
-    ${button('id="entity"','Entité',shapeIcon('entity'))}
-    ${nodes.map(kind=>button(`data-uml-node="${kind}"${['actor','participant','note','initial','component','deployment-node','entry-point','process','weak-entity'].includes(kind)?' data-section-start':''}`,NODE_LABELS[kind][0],shapeIcon(kind))).join('')}
-    ${button('id="association"','Association — MCD',shapeIcon('association'))}
-    </div><h2 class="shape-section-title">Connexions <span class="palette-total">${Object.keys(RELATION_LABELS).length+1}</span></h2><div class="shape-icon-grid connection-icon-grid" role="group" aria-label="Insérer une connexion">
-    ${button('id="relation"','Lien avec cardinalités',shapeIcon('relation'))}
-    ${Object.keys(RELATION_LABELS).map(kind=>button(`data-uml-relation="${kind}"`,RELATION_LABELS[kind][0],relationPreview(kind))).join('')}
-    </div></section>`;
+  const node=kind=>kind==='entity'?button('id="entity"','Entité',shapeIcon('entity')):kind==='bdd-association'?button('id="association"','Association — MCD',shapeIcon('association')):kind==='code-block'?button('id="code-block"','Bloc de code',shapeIcon(kind)):button(`data-uml-node="${kind}"`,NODE_LABELS[kind][0],shapeIcon(kind));
+  const relation=kind=>kind==='bdd-relation'?button('id="relation"','Lien avec cardinalités',shapeIcon('relation')):button(`data-uml-relation="${kind}"`,RELATION_LABELS[kind][0],relationPreview(kind));
+  const chevron='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m8 5 7 7-7 7"/></svg>';
+  return `<section id="shape-library" aria-label="Bibliothèque de diagrammes"><h2 class="library-title">Diagrammes <span>${DIAGRAM_GROUPS.length} familles</span></h2><div class="diagram-families">${DIAGRAM_GROUPS.map(group=>`<details class="diagram-family" data-diagram-family="${group.id}"${group.id===DEFAULT_FAMILY?' open':''}><summary><span class="family-symbol" aria-hidden="true">${shapeIcon(group.icon)}</span><span class="family-label">${esc(group.label)}</span><span class="family-count" aria-label="${group.nodes.length+group.relations.length} éléments">${group.nodes.length+group.relations.length}</span><span class="family-chevron">${chevron}</span></summary><div class="family-content"><h3>Formes</h3><div class="shape-icon-grid" role="group" aria-label="Formes — ${esc(group.label)}">${group.nodes.map(node).join('')}</div>${group.relations.length?`<h3>Connexions</h3><div class="shape-icon-grid connection-icon-grid" role="group" aria-label="Connexions — ${esc(group.label)}">${group.relations.map(relation).join('')}</div>`:''}</div></details>`).join('')}</div></section>`;
 }
 
 export function umlDialogMarkup() {

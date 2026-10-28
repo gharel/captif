@@ -31,6 +31,8 @@ import { TEXT_SIZE } from './geometry.js';
 import { pageIndex } from './page-index.js';
 import { normalizeCopy } from './document-data.js';
 import { placeFloating, floatingBoxes } from './floating-placement.js';
+import { DEFAULT_FAMILY } from './palette-groups.js';
+import './neumorphism.css';
 import { readPreferences,writePreferences,toolShortcut,TOOL_KEYS } from './workspace-preferences.js';
 
 const loaded = loadCopy();
@@ -49,6 +51,7 @@ let fontSize = 18;
 let zoom = 85;
 let fitZoom = true;
 const visualPreferences=readPreferences();
+let activeFamily=visualPreferences.family||DEFAULT_FAMILY;
 let grid = visualPreferences.grid??true;
 let gesture = null;
 let hoveredAnchor = null;
@@ -281,10 +284,25 @@ function showShapeTooltip(event){
   hideShapeTooltip();shapeTooltip.textContent=button.getAttribute('aria-label');shapeTooltip.hidden=false;button.setAttribute('aria-describedby','shape-tooltip');
   const rect=button.getBoundingClientRect();shapeTooltip.style.left=`${Math.max(8,rect.left-shapeTooltip.offsetWidth-10)}px`;shapeTooltip.style.top=`${Math.max(78,Math.min(innerHeight-shapeTooltip.offsetHeight-8,rect.top))}px`;
 }
+const families=[...library.querySelectorAll('[data-diagram-family]')];
+for(const family of families)family.open=family.dataset.diagramFamily===activeFamily;
+library.addEventListener('toggle',event=>{
+  const family=event.target;if(!family.matches('[data-diagram-family]')||!family.open)return;
+  activeFamily=family.dataset.diagramFamily;
+  for(const other of families)if(other!==family)other.open=false;
+  hideShapeTooltip();saveVisualPreferences();
+  requestAnimationFrame(()=>{const list=library.querySelector('.diagram-families'),header=family.querySelector('summary');list.scrollTo({top:list.scrollTop+header.getBoundingClientRect().top-list.getBoundingClientRect().top-4,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});});
+},true);
 library.querySelectorAll('.shape-icon-button').forEach(e=>e.removeAttribute('title'));
 library.addEventListener('pointerover',showShapeTooltip);library.addEventListener('focusin',showShapeTooltip);
 library.addEventListener('pointerout',hideShapeTooltip);library.addEventListener('focusout',hideShapeTooltip);library.addEventListener('click',hideShapeTooltip);library.addEventListener('scroll',hideShapeTooltip,true);
 library.addEventListener('keydown',event=>{
+  if(event.target.matches('summary')){
+    const headers=families.map(f=>f.querySelector('summary')),index=headers.indexOf(event.target);
+    const next=({ArrowDown:Math.min(headers.length-1,index+1),ArrowUp:Math.max(0,index-1),Home:0,End:headers.length-1})[event.key];
+    if(next!==undefined){event.preventDefault();headers[next].focus();return;}
+    if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();event.target.parentElement.open=event.key==='ArrowRight';return;}
+  }
   const button=event.target.closest('.shape-icon-button');if(!button)return;
   if(event.key==='Escape'){hideShapeTooltip();return;}
   const buttons=[...button.parentElement.querySelectorAll('.shape-icon-button')],index=buttons.indexOf(button),columns=getComputedStyle(button.parentElement).gridTemplateColumns.split(' ').length;
@@ -295,7 +313,7 @@ library.addEventListener('keydown',event=>{
 document.querySelector('.workspace').classList.toggle('pages-collapsed',!(visualPreferences.pages??innerWidth>=1000));
 document.querySelector('.workspace').classList.toggle('library-collapsed',!(visualPreferences.library??innerWidth>=760));
 document.querySelector('#grid').checked=grid;
-function saveVisualPreferences(){writePreferences({pages:!document.querySelector('.workspace').classList.contains('pages-collapsed'),library:!document.querySelector('.workspace').classList.contains('library-collapsed'),grid});}
+function saveVisualPreferences(){writePreferences({family:activeFamily,pages:!document.querySelector('.workspace').classList.contains('pages-collapsed'),library:!document.querySelector('.workspace').classList.contains('library-collapsed'),grid});}
 for(const [id,className,name] of [['toggle-pages','pages-collapsed','la colonne des feuilles'],['toggle-library','library-collapsed','la bibliothèque']]){
   const collapsed=document.querySelector('.workspace').classList.contains(className);
   document.querySelector(`#${id}`).setAttribute('aria-expanded',String(!collapsed));
@@ -1053,7 +1071,7 @@ window.addEventListener('keydown', e => {
   if(shortcut&&!gesture&&!locked()){e.preventDefault();setTool(shortcut);return;}
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); travel(e.shiftKey ? redo : undo); }
   if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
-  if(e.key==='Enter'&&e.target.closest('button,a,[role="button"]'))return;
+  if(e.key==='Enter'&&e.target.closest('button,a,summary,[role="button"]'))return;
   if (e.key === 'Enter' && selectionIds().length===1 && item()?.type === 'group') { e.preventDefault(); enterGroup(selected); }
   else if (e.key === 'Enter' && selectionIds().length===1 && item()?.type === 'text') { e.preventDefault(); beginTextEdit(selected); }
   if (e.key === 'Escape') { if (editingGroup) exitGroup(); else { gesture = null; selected = null; setTool('select'); } }
