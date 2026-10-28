@@ -1,5 +1,17 @@
 import { textLines } from './geometry.js';
 const INTERNAL_LABELS=new Set(['usecase','action','decision','component','artifact','database','deployment-node','data-object','identifying-relationship','process','subprocess','input-output','document','manual-input','preparation','weak-entity','send-signal','receive-signal']);
+// One exclusive hue per colored component; close stops keep the finish restrained.
+export const DIAGRAM_COLORS=Object.freeze(Object.fromEntries(Object.entries({
+  entity:['#317b78','#2c716f'],
+  association:['#35768d','#306c82'],
+  class:['#5564ae','#4d5ba2'],
+  'abstract-class':['#656397','#5c5a8c'],
+  interface:['#526f82','#4b6578'],
+  object:['#805f91','#755687'],
+  participant:['#416fb2','#3b65a6'],
+  usecase:['#a45c7b','#985370'],
+  fragment:['#627186','#59677c'],
+}).map(([kind,stops])=>[kind,Object.freeze(stops)])));
 
 /** Display-only geometry shared by SVG and direct editing. Never changes the copy. */
 export function diagramTextPresentation(text,parent){
@@ -21,10 +33,11 @@ export function diagramTextPresentation(text,parent){
 }
 
 export function diagramSurface(group,child){
-  if(child.role==='header'||group.label==='Association BDD'&&child.type==='ellipse')return ['#a85b18','#824016'];
-  if(child.type==='rect'&&child.role==='uml-decoration'&&child.fill!=='none')return group.umlKind==='object'?['#7655aa','#4d357d']:['#346b9d','#22466f'];
-  if(group.umlKind==='participant'&&child.role==='uml-frame')return ['#346b9d','#22466f'];
-  if(group.umlKind==='usecase'&&child.type==='ellipse')return ['#7655aa','#4d357d'];
+  if(child.role==='header')return DIAGRAM_COLORS.entity;
+  if(group.label==='Association BDD'&&child.type==='ellipse')return DIAGRAM_COLORS.association;
+  if(child.type==='rect'&&child.role==='uml-decoration'&&child.fill!=='none')return DIAGRAM_COLORS[group.umlKind]||null;
+  if(group.umlKind==='participant'&&child.role==='uml-frame')return DIAGRAM_COLORS.participant;
+  if(group.umlKind==='usecase'&&child.type==='ellipse')return DIAGRAM_COLORS.usecase;
   return null;
 }
 
