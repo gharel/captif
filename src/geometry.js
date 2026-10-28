@@ -1,9 +1,11 @@
 export const W = 794;
+import { codeLines } from './code-lines.js';
 export const H = 1123;
 
 export function textLines(element) {
   const available = Math.min(element.width ?? Infinity, W - 32 - element.x);
   const maxChars = Math.max(1, Math.floor(available / ((element.fontSize || 18) * .62)));
+  if(element.role==='code-content')return codeLines(element.text,maxChars);
   return element.text.split('\n').flatMap(line => {
     const parts = [];
     while (line.length > maxChars) {

@@ -1,4 +1,5 @@
 import './style.css';
+import './code-editor.css';
 import { createDocument, addPage, removePage, addElement, updateElement, removeElement, createHistory, commit, undo, redo, validateDocument, translateElement, elementBounds } from './model.js';
 import { createMonitor } from './monitor.js';
 import { loadCopy, saveCopy, downloadJson } from './storage.js';
@@ -18,6 +19,8 @@ import { alignElements,autoLayout,isLayoutBox } from './layout.js';
 import { editableConnector,resolveDiagramConnections } from './diagram-connections.js';
 import { TEXT_STYLES, textFormatMarkup, toggleTextFormat, textStyleIcon, alignmentIcon } from './editor-controls.js';
 import { isEntityBox, updateEntityBox } from './entity-box.js';
+import { isCodeBlock, createCodeBlock, updateCodeBlock, CODE_LANGUAGES } from './code-blocks.js';
+import { highlightHtml } from './code-highlight.js';
 
 const loaded = loadCopy();
 let history = createHistory(loaded.document || createDocument());
@@ -172,6 +175,10 @@ function saveUmlElement(element, existing) {
   if(!existing)focusDiagramName(element.id);
 }
 umlUi = mountUmlUi({ getPage:page, isLocked:locked, beforeOpen:()=>{if(!commitTextEdit())return false;document.querySelector('#text-context').hidden=true;strokeUi?.close();return true;}, onSave:saveUmlElement,onCreate(kind,relation){try{saveUmlElement(emptyUml(kind,{relation,elements:page().elements,preferred:selectionIds()}),null);}catch(error){toast(error.message,true);}} });
+document.querySelector('#code-block').onclick=()=>{
+  if(locked()||!commitTextEdit())return;
+  try{const block=placeElement(createCodeBlock()),next=addElement(doc(),activePage,block);validateDocument(next);selected=block.id;editingGroup=null;change(next);setTool('select');beginTextEdit(block.children.find(c=>c.role==='code-content').id);}catch(error){toast(error.message,true);}
+};
 strokeUi = mountStrokeUi({ getCurrent:()=>({color,thickness,dash}), onChange(patch) {
   if(locked())return;
   if(patch.stroke)color=patch.stroke;
@@ -261,6 +268,7 @@ function cancelTextEdit() {
 function reframeGroup(next, parentId) {
   const parent = next.pages.find(p => p.id === activePage)?.elements.find(e => e.id === parentId);
   if (!parent) return next;
+  if(isCodeBlock(parent)){try{return validateDocument(updateElement(next,activePage,parentId,updateCodeBlock(parent)));}catch{return null;}}
   if(isEntityBox(parent)){try{return validateDocument(updateElement(next,activePage,parentId,updateEntityBox(parent)));}catch{return null;}}
   if(isUmlNode(parent)) { try{return validateDocument(updateElement(next,activePage,parentId,{...updateUmlNode(parent,readUmlNode(parent)),...(parent.sourceId?{sourceId:parent.sourceId,offset:parent.offset}:{})}));}catch{return null;} }
   if(isUmlRelation(parent)) { try{return validateDocument(updateElement(next,activePage,parentId,updateUmlRelation(parent,readUmlRelation(parent))));}catch{return null;} }
@@ -327,9 +335,10 @@ function commitTextEdit() {
   }
   let next = updateElement(doc(), activePage, target.id, patch);
   const parent = parentGroup(target.id);
+  if(isCodeBlock(parent))next=updateElement(next,activePage,parent.id,{codeLanguage:editingText.language});
   if (parent) next = reframeGroup(next, parent.id);
   if (!next) { toast('Le texte agrandirait le groupe au-delà de la feuille. Raccourcissez-le ou déplacez le groupe.', true); editor.focus(); return false; }
-  const unchanged = target.text === patch.text && TEXT_STYLES.every(style => Boolean(target[style]) === Boolean(patch[style]));
+  const unchanged = target.text === patch.text && TEXT_STYLES.every(style => Boolean(target[style]) === Boolean(patch[style])) && (!isCodeBlock(parent)||parent.codeLanguage===editingText.language);
   cancelTextEdit();
   if (!unchanged) change(next);
   selectElement(target.id);
@@ -341,27 +350,36 @@ function beginTextEdit(elementId) {
   if (editingText && !commitTextEdit()) return;
   const target = page().elements.flatMap(e => [e, ...(e.children || [])]).find(e => e.id === elementId && e.type === 'text');
   if (!target) return;
+  if(target.role==='code-language'){const content=parentGroup(target.id)?.children.find(c=>c.role==='code-content');if(content)beginTextEdit(content.id);return;}
   const parent = parentGroup(elementId);
   if (parent&&!isDiagram(parent)) editingGroup = parent.id;
   selected = elementId;
   selectElement(elementId);
   editingText = { id: elementId, format: Object.fromEntries(TEXT_STYLES.map(style=>[style,Boolean(target[style])])) };
+  const codeField=target.role==='code-content'&&isCodeBlock(parent);
+  if(codeField)editingText.language=parent.codeLanguage||'plaintext';
   document.querySelector('#text-context').hidden = true;
-  const bounds = elementBounds(target);
+  const displayed=resolvedPage().elements.flatMap(e=>[e,...(e.children||[])]).find(e=>e.id===target.id)||target;
+  const bounds = elementBounds(displayed);
   const scale = zoom / 100;
   const editor = document.createElement('div');
   editor.id = 'inline-editor'; editor.className = 'inline-editor';
-  const left = Math.max(8, target.x * scale - 8);
+  const left = Math.max(8, displayed.x * scale - 8);
   editor.style.left = `${left}px`;
   editor.style.top = `${Math.max(8, bounds.y * scale - 8)}px`;
   editor.style.width = `${Math.min(W * scale - left - 12, Math.max(240, bounds.width * scale + 24))}px`;
   const actorLabel=parent?.umlKind==='actor'&&target.role==='uml-name';
   if(actorLabel){const width=parseFloat(editor.style.width);editor.style.left=`${Math.max(8,Math.min(W*scale-width-8,(parent.x+parent.width/2)*scale-width/2))}px`;}
-  const choices=diagramChoices(target,parent),single=Boolean(target.role)&&!['uml-attributes','uml-operations','box-body'].includes(target.role);
+  const choices=diagramChoices(target,parent),single=Boolean(target.role)&&!['uml-attributes','uml-operations','box-body','code-content'].includes(target.role);
   editor.style.top = `${Math.max(8,bounds.y * scale - (choices?8:48))}px`;
   editor.classList.toggle('diagram-cell-editor',Boolean(target.role));
+  editor.classList.toggle('code-editor',codeField);
   const control=choices?`<select id="inline-text">${choices.map(([value,label])=>`<option value="${esc(value)}">${esc(label)}</option>`).join('')}</select>`:single?'<input id="inline-text" type="text" maxlength="80" autocomplete="off" spellcheck="false" />':'<textarea id="inline-text" maxlength="10000" spellcheck="false"></textarea>';
   editor.innerHTML = `${choices?'':textFormatMarkup(editingText.format)}<label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label>${control}<div class="inline-editor-actions"><span class="small">${single?'Entrée : valider · Tab : suivant':'Ctrl + Entrée pour valider'}</span><button id="cancel-inline" class="button secondary" type="button">Annuler</button><button id="save-inline" class="button primary" type="button">Enregistrer</button></div>`;
+  if(codeField){
+    editor.style.width=`${Math.min(W*scale-left-12,Math.max(440,bounds.width*scale+24))}px`;
+    editor.innerHTML=`<div class="code-editor-toolbar"><span aria-hidden="true">&lt;/&gt;</span><label class="sr-only" for="code-language">Coloration syntaxique</label><select id="code-language">${Object.entries(CODE_LANGUAGES).map(([value,label])=>`<option value="${value}">${label}</option>`).join('')}</select></div><label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label><div class="code-input-wrap"><pre class="code-editor-preview" aria-hidden="true"><code></code></pre><textarea id="inline-text" maxlength="10000" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="soft"></textarea></div><div class="inline-editor-actions"><span class="small">Ctrl + Entrée pour valider</span><button id="cancel-inline" class="button secondary" type="button">Annuler</button><button id="save-inline" class="button primary" type="button">Enregistrer</button></div>`;
+  }
   document.querySelector('#paper-shell').append(editor);
   const field = editor.querySelector('#inline-text');
   if(actorLabel)field.style.textAlign='center';
@@ -378,9 +396,17 @@ function beginTextEdit(elementId) {
   editor.querySelectorAll('[data-text-format]').forEach(button=>button.onclick=()=>toggleFormat(button.dataset.textFormat));
   field.style.lineHeight = '1.5';
   field.style.minHeight = single?'36px':`${Math.max(95, Math.min(450, bounds.height * scale + 24))}px`;
+  if(codeField){
+    const language=editor.querySelector('#code-language'),preview=editor.querySelector('.code-editor-preview');
+    language.value=editingText.language;preview.style.fontSize=field.style.fontSize;
+    const refresh=()=>{preview.querySelector('code').innerHTML=highlightHtml(field.value,editingText.language)+'\n';};
+    language.onchange=()=>{editingText.language=language.value;refresh();};
+    field.addEventListener('input',refresh);field.addEventListener('scroll',()=>{preview.scrollTop=field.scrollTop;preview.scrollLeft=field.scrollLeft;});refresh();
+  }
   if(!single)field.addEventListener('input', () => { field.style.height = 'auto'; field.style.height = `${Math.min(450, Math.max(95, field.scrollHeight))}px`; });
   field.addEventListener('keydown', event => {
-    if(!choices&&(event.ctrlKey||event.metaKey)&&['b','i','u'].includes(event.key.toLowerCase())){event.preventDefault();event.stopPropagation();toggleFormat(({b:'bold',i:'italic',u:'underline'})[event.key.toLowerCase()]);return;}
+    if(!choices&&!codeField&&(event.ctrlKey||event.metaKey)&&['b','i','u'].includes(event.key.toLowerCase())){event.preventDefault();event.stopPropagation();toggleFormat(({b:'bold',i:'italic',u:'underline'})[event.key.toLowerCase()]);return;}
+    if(codeField&&event.key==='Tab'){event.preventDefault();event.stopPropagation();const start=field.selectionStart,end=field.selectionEnd;field.setRangeText('  ',start,end,'end');field.dispatchEvent(new Event('input'));return;}
     if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancelTextEdit(); renderPaper(); }
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); commitTextEdit(); }
     else if(target.role&&(event.key==='Tab'||single&&event.key==='Enter')){event.preventDefault();event.stopPropagation();if(commitTextEdit())focusNextDiagramField(target.id,event.shiftKey);}
@@ -514,7 +540,7 @@ function updateStats() {
   for (const selector of ['#import', '#export', '#new-copy', '#print']) document.querySelector(selector).disabled = s.status === 'active' || !ownsWorkspace;
   document.querySelector('#print').title = s.status === 'active' ? 'Terminez la session pour imprimer la copie et son bilan.' : 'Imprimer les feuilles A4 et le bilan';
   for (const selector of ['#student-name', '#exam-title']) document.querySelector(selector).disabled = s.status !== 'idle' || !ownsWorkspace;
-  for (const selector of ['#add-page', '#entity', '#association', '#relation', '#stroke-trigger']) document.querySelector(selector).disabled = locked();
+  for (const selector of ['#add-page', '#entity', '#association', '#relation', '#code-block','#stroke-trigger']) document.querySelector(selector).disabled = locked();
   document.querySelector('#auto-layout').disabled=locked()||!page().elements.some(isLayoutBox);
   umlUi?.syncLocked();
   if (locked()) {document.querySelector('#text-context').hidden = true;strokeUi?.close();}
@@ -603,6 +629,8 @@ function updateTextContext() {
   const sizeControl = document.querySelector('#context-size');
   if (![...sizeControl.options].some(option => Number(option.value) === e.fontSize)) sizeControl.add(new Option(`${Number(e.fontSize.toFixed(1))} px`, e.fontSize));
   sizeControl.value = e.fontSize;
+  for(const style of TEXT_STYLES)document.querySelector(`#context-${style}`).hidden=e.role==='code-content';
+  document.querySelector('.context-color').hidden=e.role==='code-content';
   sizeControl.disabled = Boolean(e.role);
   sizeControl.title = e.role ? 'Taille adaptée automatiquement au composant du diagramme' : 'Taille du texte';
   document.querySelector('#context-color').value = e.stroke;

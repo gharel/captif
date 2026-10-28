@@ -15,7 +15,7 @@ test('la palette expose toutes les formes et connexions sans filtre ni sélecteu
 test('chaque bouton de forme possède un nom accessible et une infobulle, sans texte visible', () => {
   const html = umlPaletteMarkup();
   const buttons = [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)];
-  assert.equal(buttons.length, PALETTE_NODE_KINDS.length + UML_RELATION_KINDS.length + 3);
+  assert.equal(buttons.length, PALETTE_NODE_KINDS.length + UML_RELATION_KINDS.length + 4);
   for (const [, attrs, content] of buttons) {
     assert.match(attrs, /aria-label="[^"]+"/);
     assert.match(attrs, /title="[^"]+"/);

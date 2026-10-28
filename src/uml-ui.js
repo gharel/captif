@@ -12,6 +12,11 @@ export const NODE_LABELS = {
   initial:['État initial','Point plein'],final:['État final','Cible'], 'flow-final':['Fin de flux','Cercle barré'],decision:['Décision / fusion','Losange'],
   fork:['Fourche de parallélisme','Barre horizontale'],join:['Jonction de parallélisme','Barre verticale'],history:['Historique','Historique simple'],
   'deep-history':['Historique profond','Historique profond'],swimlane:['Couloir d’activité','Partition'],component:['Composant','Composant UML'],artifact:['Artefact','Document'],database:['Base de données','Cylindre'],
+  'deployment-node':['Nœud de déploiement','Cube'],port:['Port','Port de composant'],'provided-interface':['Interface fournie','Interface graphique'],'required-interface':['Interface requise','Interface graphique'],
+  'entry-point':['Point d’entrée','Événement'],'exit-point':['Point de sortie','Événement'],terminate:['Terminaison','Fin'],junction:['Jonction','Point'],
+  'send-signal':['Envoi de signal','Signal'],'receive-signal':['Réception de signal','Signal'],'time-event':['Événement temporel','Sablier'],
+  'data-object':['Objet de données','Document'],process:['Processus','Bloc'],subprocess:['Sous-processus','Bloc à doubles bords'],'input-output':['Entrée / sortie','Parallélogramme'],
+  document:['Document','Document'], 'manual-input':['Saisie manuelle','Bloc incliné'],preparation:['Préparation','Hexagone'],'weak-entity':['Entité faible','Double cadre'],'identifying-relationship':['Relation identifiante','Double losange'],
 };
 export const RELATION_LABELS = {
   association: ['Association', 'Lien simple entre éléments'], 'directed-association': ['Association orientée', 'Navigabilité vers l’arrivée'],
@@ -25,6 +30,8 @@ export const RELATION_LABELS = {
   'message-found':['Message trouvé','Origine inconnue'],'message-lost':['Message perdu','Destination inconnue'],
   'message-create':['Message de création','Création d’une instance'],'message-delete':['Message de destruction','Destruction d’une instance'],
   'message-balking':['Message dérobant (convention)','Message non bloquant'],'message-timeout':['Message avec délai (convention)','Délai dépassé'],
+  'erd-one-one':['Lien ERD : un à un','Patte d’oie'],'erd-one-many':['Lien ERD : un à plusieurs','Patte d’oie'],'erd-zero-one':['Lien ERD : un à zéro ou un','Patte d’oie'],
+  'erd-zero-many':['Lien ERD : un à zéro ou plusieurs','Patte d’oie'],'erd-many-many':['Lien ERD : plusieurs à plusieurs','Patte d’oie'],
 };
 export const UML_DIAGRAMS = {
   classes: { label: 'Diagramme de classes', description: 'Structure, contrats et relations entre classes.', nodes: ['class','abstract-class','interface','note'], relations: ['association','directed-association','aggregation','composition','generalization','realization','dependency'] },
@@ -34,12 +41,15 @@ export const UML_DIAGRAMS = {
   states: {label:'États-transitions',description:'États et transitions.',nodes:['state','initial','final','decision','history','deep-history'],relations:['transition']},
   activity: {label:'Activité',description:'Actions et flux.',nodes:['action','initial','final','flow-final','decision','fork','join','swimlane'],relations:['flow']},
   structure: {label:'Structure et paquetages',description:'Conteneurs et composants.',nodes:['package','component','artifact','database'],relations:['dependency']},
+  deployment:{label:'Déploiement et composants',description:'Nœuds et interfaces.',nodes:['deployment-node','port','provided-interface','required-interface'],relations:['dependency']},
+  flowchart:{label:'Processus',description:'Processus et événements.',nodes:['entry-point','exit-point','terminate','junction','send-signal','receive-signal','time-event','data-object','process','subprocess','input-output','document','manual-input','preparation','weak-entity','identifying-relationship'],relations:['flow','erd-one-one','erd-one-many','erd-zero-one','erd-zero-many','erd-many-many']},
 };
 export const PALETTE_NODE_KINDS=UML_NODE_KINDS.filter(kind=>!['abstract-class','interface'].includes(kind));
 export function umlPaletteMarkup() {
   const button=(attrs,name,svg)=>`<button type="button" class="shape-icon-button" ${attrs} aria-label="${esc(name)}" title="${esc(name)}">${svg}</button>`;
   const nodes=PALETTE_NODE_KINDS;
   return `<section id="shape-library" aria-label="Bibliothèque de formes"><h2 class="shape-section-title">Formes</h2><div class="shape-icon-grid" role="group" aria-label="Insérer une forme">
+    ${button('id="code-block"','Bloc de code',shapeIcon('code-block'))}
     ${button('id="entity"','Entité',shapeIcon('entity'))}
     ${nodes.map(kind=>button(`data-uml-node="${kind}"`,NODE_LABELS[kind][0],shapeIcon(kind))).join('')}
     ${button('id="association"','Association — MCD',shapeIcon('association'))}
@@ -82,7 +92,7 @@ export function mountUmlUi({ getPage, isLocked, onSave, onCreate, beforeOpen = (
   function relationFields(kind, values = {}) {
     $('uml-source').disabled=false;
     const sequence=kind.startsWith('message-');
-    const targets=nodeOptions(e=>sequence?e.umlKind==='participant':['include','extend','exclude'].includes(kind)?e.umlKind==='usecase':kind==='object-link'?e.umlKind==='object':!['system','fragment','activation','destruction','note'].includes(e.umlKind));
+    const targets=kind.startsWith('erd-')?getPage().elements.filter(e=>['Entité BDD','Association BDD'].includes(e.label)||['weak-entity','identifying-relationship'].includes(e.umlKind)).map(e=>({id:e.id,name:e.children.find(c=>['box-title','entity-name','association-name','uml-name'].includes(c.role))?.text||'Entité'})):nodeOptions(e=>sequence?e.umlKind==='participant':['include','extend','exclude'].includes(kind)?e.umlKind==='usecase':kind==='object-link'?e.umlKind==='object':!['system','fragment','activation','destruction','note'].includes(e.umlKind));
     choices($('uml-source'),targets,values.sourceId,targets[kind==='message-return'?1:0]?.id||'');
     choices($('uml-target'),targets,values.targetId,kind==='message-return'||kind==='message-self'?targets[0]?.id||'':targets[1]?.id||'');
     if(!values.sourceId&&!values.targetId&&targets.length<2&&kind!=='message-self'){$('uml-source').value='';$('uml-target').value='';}
@@ -154,6 +164,12 @@ export function mountUmlUi({ getPage, isLocked, onSave, onCreate, beforeOpen = (
 }
 
 function relationPreview(kind) {
+  if(kind.startsWith('erd-')){
+    const many=kind.endsWith('many'),optional=kind.includes('zero'),both=kind==='erd-many-many';
+    const source=both?'<path d="m3 5 12 7-12 7"/>':'<path d="M8 5v14"/>';
+    const target=many?'<path d="m45 5-12 7 12 7"/>':'<path d="M40 5v14"/>';
+    return `<svg viewBox="0 0 48 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 12h42"/>${source}${target}${optional?'<circle cx="27" cy="12" r="4" fill="white"/>':''}</svg>`;
+  }
   if(kind==='message-self')return '<svg viewBox="0 0 48 24" aria-hidden="true"><path d="M8 4h26v16H8m6-5-6 5 6 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
   const extra={
     'message-found':'<circle cx="5" cy="12" r="3" fill="currentColor"/>',

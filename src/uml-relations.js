@@ -1,6 +1,6 @@
 import { W, H, elementBounds, translateElement } from './geometry.js';
 
-export const UML_RELATION_KINDS = ['association','directed-association','aggregation','composition','generalization','realization','dependency','object-link','include','extend','exclude','transition','flow','message-simple','message-sync','message-async','message-return','message-self','message-timed','message-found','message-lost','message-create','message-delete','message-balking','message-timeout'];
+export const UML_RELATION_KINDS = ['association','directed-association','aggregation','composition','generalization','realization','dependency','object-link','include','extend','exclude','transition','flow','message-simple','message-sync','message-async','message-return','message-self','message-timed','message-found','message-lost','message-create','message-delete','message-balking','message-timeout','erd-one-one','erd-one-many','erd-zero-one','erd-zero-many','erd-many-many'];
 const uid = () => crypto.randomUUID();
 const ink = '#334155';
 const dashed = new Set(['realization','dependency','include','extend','exclude','message-return','message-create','message-timeout']);
@@ -55,6 +55,30 @@ function messageSymbols(kind,p,q) {
   return [];
 }
 
+/** ERD endpoint marks, with explicit ownership for the orthogonal route adapter. */
+function erdSymbols(kind,p,q) {
+  const variants={
+    'erd-one-one':['one','one'], 'erd-one-many':['one','many'],
+    'erd-zero-one':['one','zero-one'], 'erd-zero-many':['one','zero-many'],
+    'erd-many-many':['many','many'],
+  };
+  if(!variants[kind])return [];
+  const endpoint=(notation,origin,towards,rowId)=>{
+    const length=Math.hypot(towards.x-origin.x,towards.y-origin.y)||1;
+    const ux=(towards.x-origin.x)/length,uy=(towards.y-origin.y)/length;
+    const at=(distance,across=0)=>({x:clamp(origin.x+ux*distance-uy*across,16,W-16),y:clamp(origin.y+uy*distance+ux*across,20,H-20)});
+    const pen=points=>child('pen','uml-marker',{...points[0],points,rowId,fill:'none'});
+    const bar=distance=>pen([at(distance,-7),at(distance,7)]);
+    const circle=distance=>{const center=at(distance);return child('ellipse','uml-marker',{x:center.x-4,y:center.y-4,width:8,height:8,rowId,fill:'#ffffff'});};
+    const fork=()=>pen([at(0,-7),at(12),at(0,7),at(12),at(0)]);
+    if(notation==='one')return [bar(8),bar(15)];
+    if(notation==='zero-one')return [bar(8),circle(21)];
+    return [fork(),notation==='zero-many'?circle(23):bar(22)];
+  };
+  const [source,target]=variants[kind];
+  return [...endpoint(source,p,q,'source'),...endpoint(target,q,p,'target')];
+}
+
 function geometry(kind,name,left,right,p,q,self=false,dashOverride) {
   const dash=dashOverride==='solid'?undefined:dashOverride||(dashed.has(kind)?'6 5':undefined);
   const lines=self ? [line(p.x,p.y,q.x,p.y,dash),line(q.x,p.y,q.x,q.y,dash),line(q.x,q.y,p.x,q.y,dash)] : [line(p.x,p.y,q.x,q.y,dash)];
@@ -65,7 +89,7 @@ function geometry(kind,name,left,right,p,q,self=false,dashOverride) {
   const vertical=!self&&Math.abs(q.y-p.y)>Math.abs(q.x-p.x);
   const nameX=clamp(vertical?(p.x+q.x)/2+(left||right?70:18):(p.x+q.x)/2-text.length*4,24,Math.max(24,W-30-text.length*8));
   const nameY=clamp(vertical?(p.y+q.y)/2+4:Math.min(p.y,q.y)-12,38,H-30);
-  return [...lines,...(marker?[marker]:[]),...messageSymbols(kind,p,finalPoint),label('uml-relation-name',nameX,nameY,text),
+  return [...lines,...(marker?[marker]:[]),...messageSymbols(kind,p,finalPoint),...erdSymbols(kind,p,finalPoint),label('uml-relation-name',nameX,nameY,text),
     label('uml-source-label',clamp(vertical?p.x-left.length*8-12:p.x+(q.x>=p.x?10:-left.length*8-10),24,W-60),clamp(vertical?p.y+(q.y>=p.y?18:-8):p.y+23,38,H-25),left),
     label('uml-target-label',clamp(vertical?finalPoint.x+12:finalPoint.x-(q.x>=p.x?right.length*8+10:-10),24,W-60),clamp(vertical?finalPoint.y+(q.y>=p.y?-6:18):finalPoint.y+23,38,H-25),right)];
 }

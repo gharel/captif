@@ -1,0 +1,1 @@
+export const CODE_LANGUAGES=Object.freeze({plaintext:'Texte brut',sql:'SQL',javascript:'JavaScript',typescript:'TypeScript',css:'CSS',html:'HTML',php:'PHP',java:'Java',markdown:'Markdown',python:'Python',json:'JSON',bash:'Bash',xml:'XML'});

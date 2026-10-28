@@ -1,0 +1,19 @@
+.inline-editor.code-editor { border-color:#b9c5df; box-shadow:0 20px 60px #17243b25,0 0 0 1px #fff; overflow:hidden; }
+.code-editor-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; background:linear-gradient(120deg,#17243b,#334463); color:#dce6ff; }
+.code-editor-toolbar > span { font:700 15px ui-monospace,monospace; color:#b7c7ff; }
+.code-editor-toolbar #code-language { width:155px; min-height:30px; padding:4px 8px; border:1px solid #ffffff30; border-radius:6px; background:#ffffff12; color:#eef3ff; font-size:11px; }
+.code-editor-toolbar #code-language option { background:#fff; color:#17243b; }
+.code-input-wrap { position:relative; background:#fbfcff; }
+.code-editor .code-editor-preview,.code-editor #inline-text { margin:0; padding:12px; font-family:ui-monospace,Consolas,monospace; font-weight:400!important; font-style:normal!important; text-decoration:none!important; line-height:1.5; letter-spacing:0; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-all; tab-size:4; border:0; border-radius:0; }
+.code-editor .code-editor-preview { position:absolute; inset:0; overflow:hidden; pointer-events:none; color:#334155; }
+.code-editor-preview code { font:inherit; }
+.code-editor #inline-text { position:relative; z-index:1; background:transparent!important; color:transparent!important; -webkit-text-fill-color:transparent; caret-color:#17243b; resize:none; box-shadow:none!important; }
+.code-editor #inline-text::selection { background:#a5b4fc60; }
+.code-editor-preview :is(.hljs-keyword,.hljs-literal,.hljs-section,.hljs-bullet) { color:#7c3aed; }
+.code-editor-preview :is(.hljs-built_in,.hljs-type,.hljs-name,.hljs-variable) { color:#be185d; }
+.code-editor-preview :is(.hljs-number,.hljs-attr,.hljs-attribute) { color:#b45309; }
+.code-editor-preview :is(.hljs-string,.hljs-regexp,.hljs-symbol) { color:#0e7490; }
+.code-editor-preview :is(.hljs-comment,.hljs-quote,.hljs-meta) { color:#64748b; }
+.code-editor-preview .hljs-title { color:#2563eb; }
+@media print { .code-editor { display:none!important; } }
+@media screen { #paper > .paper-svg > .group-element:not([aria-label^="Relation"]) { filter:drop-shadow(0 3px 4px #26396315); } }

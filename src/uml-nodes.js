@@ -1,6 +1,6 @@
 import { W, H } from './geometry.js';
 
-export const UML_NODE_KINDS = ['class', 'abstract-class', 'interface', 'object', 'actor', 'usecase', 'system', 'participant', 'activation', 'fragment', 'destruction', 'note', 'package', 'state', 'action', 'initial', 'final', 'flow-final', 'decision', 'fork', 'join', 'history', 'deep-history', 'swimlane', 'component', 'artifact', 'database'];
+export const UML_NODE_KINDS = ['class', 'abstract-class', 'interface', 'object', 'actor', 'usecase', 'system', 'participant', 'activation', 'fragment', 'destruction', 'note', 'package', 'state', 'action', 'initial', 'final', 'flow-final', 'decision', 'fork', 'join', 'history', 'deep-history', 'swimlane', 'component', 'artifact', 'database', 'deployment-node', 'port', 'provided-interface', 'required-interface', 'entry-point', 'exit-point', 'terminate', 'junction', 'send-signal', 'receive-signal', 'time-event', 'data-object', 'process', 'subprocess', 'input-output', 'document', 'manual-input', 'preparation', 'weak-entity', 'identifying-relationship'];
 const uid = () => crypto.randomUUID();
 const color = '#303540';
 const defaults = { class: 'Classe', 'abstract-class': 'ClasseAbstraite', interface: 'Interface', object: 'instance', actor: 'Acteur', usecase: "Cas d’utilisation", system: 'Système', participant: 'Participant', activation: '', fragment: 'Fragment', destruction: '', note: 'Note' };
@@ -25,6 +25,8 @@ const line = (x, y, x2, y2, extra = {}) => primitive('line', { role: 'uml-decora
 const text = (role, x, y, value, fontSize = 14, extra = {}) => primitive('text', { role, x, y, text: value, fontSize, ...extra });
 const textWidth = (value, size) => Math.max(1, ...String(value).split('\n').map(line => line.length)) * size * .62;
 const compactKinds = new Set(['initial','final','flow-final','fork','join','history','deep-history']);
+const smallKinds = new Set(['port','provided-interface','required-interface','entry-point','exit-point','terminate','junction','time-event']);
+const flowKinds = new Set(['send-signal','receive-signal','process','subprocess','input-output','document','manual-input','preparation','weak-entity']);
 
 export function isUmlNode(group) {
   return Boolean(group?.type === 'group' && (UML_NODE_KINDS.includes(group.umlKind) || group.label === 'Classe UML'));
@@ -66,6 +68,11 @@ export function createUmlNode(kind, options = {}) {
   else if (kind === 'component') { width = Math.max(220,textWidth(name,15)+64);height=100; }
   else if (kind === 'artifact') { width = Math.max(190,textWidth(name,15)+38);height=110; }
   else if (kind === 'database') { width = Math.max(180,textWidth(name,15)+36);height=100; }
+  else if (kind === 'deployment-node') { width=Math.max(200,textWidth(name,14)+54);height=130; }
+  else if (kind === 'data-object') { width=Math.max(150,textWidth(name,14)+38);height=110; }
+  else if (kind === 'identifying-relationship') { width=Math.max(140,textWidth(name,14)*1.6+36);height=Math.max(90,width*.65); }
+  else if (smallKinds.has(kind)) { nodeHeight=kind==='port'?26:kind==='time-event'?64:kind.endsWith('interface')?60:40;width=Math.max(kind.endsWith('interface')?90:kind==='time-event'?64:40,name?textWidth(name,12)+20:0);height=nodeHeight+(name?28:0); }
+  else if (flowKinds.has(kind)) { width=Math.max(kind==='weak-entity'?240:190,textWidth(name,14)+64);height=kind==='weak-entity'?110:82; }
   else if (compactKinds.has(kind)) { width=Math.max(kind==='fork'?120:kind==='join'?12:40,name?textWidth(name,12)+16:0);nodeHeight=kind==='join'?120:kind==='fork'?12:40;height=nodeHeight+(name?28:0); }
   else { width = Math.max(280, textWidth(name, 16) + 36, ...attributes.map(a => textWidth(a, 14) + 36)); height = 68 + Math.max(1, attributes.length) * 21; }
   if (width > W - 48 || height > H - 60) throw new Error('Cet élément dépasse les dimensions utiles de la feuille.');
@@ -116,6 +123,40 @@ export function createUmlNode(kind, options = {}) {
     children.push(primitive('pen',{role:'uml-frame',x,y,fill:'#ffffff',points:[{x,y},{x:x+width-22,y},{x:x+width,y:y+22},{x:x+width,y:y+height},{x,y:y+height},{x,y}]}),line(x+width-22,y,x+width-22,y+22),line(x+width-22,y+22,x+width,y+22),text('uml-name',x+14,y+height/2+5,name,15));
   } else if (kind === 'database') {
     children.push(rect(x,y+10,width,height-20),primitive('ellipse',{role:'uml-decoration',x,y:y+height-20,width,height:20,fill:'#ffffff'}),primitive('ellipse',{role:'uml-decoration',x,y,width,height:20,fill:'#ffffff'}),text('uml-name',x+(width-textWidth(name,15))/2,y+height/2+7,name,15));
+  } else if (kind === 'deployment-node') {
+    const depth=18;
+    children.push(rect(x,y+depth,width-depth,height-depth),primitive('pen',{role:'uml-decoration',x,y,fill:'#f5f6fa',points:[{x,y:y+depth},{x:x+depth,y},{x:x+width,y},{x:x+width-depth,y:y+depth},{x,y:y+depth}]}),line(x+width-depth,y+depth,x+width,y),line(x+width,y,x+width,y+height-depth),line(x+width,y+height-depth,x+width-depth,y+height),text('uml-name',x+(width-depth-textWidth(name,14))/2,y+height/2+12,name,14));
+  } else if (kind === 'data-object') {
+    children.push(primitive('pen',{role:'uml-frame',x,y,fill:'#ffffff',points:[{x,y},{x:x+width-20,y},{x:x+width,y:y+20},{x:x+width,y:y+height},{x,y:y+height},{x,y}]}),line(x+width-20,y,x+width-20,y+20),line(x+width-20,y+20,x+width,y+20),text('uml-name',x+(width-textWidth(name,14))/2,y+height/2+5,name,14));
+  } else if (kind === 'identifying-relationship') {
+    const polygon=inset=>primitive('pen',{role:'uml-frame',x:x+inset,y:y+inset,fill:inset?'none':'#ffffff',points:[{x:x+width/2,y:y+inset},{x:x+width-inset,y:y+height/2},{x:x+width/2,y:y+height-inset},{x:x+inset,y:y+height/2},{x:x+width/2,y:y+inset}]});
+    children.push(polygon(0),polygon(7),text('uml-name',x+(width-textWidth(name,14))/2,y+height/2+5,name,14));
+  } else if (smallKinds.has(kind)) {
+    const cx=x+width/2,cy=y+nodeHeight/2;
+    if(kind==='port')children.push(rect(cx-12,y+1,24,24));
+    else if(kind==='provided-interface')children.push(line(x+6,cy,cx-12,cy),primitive('ellipse',{role:'uml-frame',x:cx-12,y:cy-12,width:24,height:24,fill:'#ffffff'}));
+    else if(kind==='required-interface'){
+      const points=Array.from({length:13},(_,i)=>{const angle=Math.PI/2+i*Math.PI/12;return{x:cx+12*Math.cos(angle),y:cy+12*Math.sin(angle)};});
+      children.push(line(x+6,cy,cx-12,cy),primitive('pen',{role:'uml-frame',...points[0],points,fill:'none'}));
+    } else if(kind==='entry-point'||kind==='exit-point'){
+      children.push(primitive('ellipse',{role:'uml-frame',x:cx-16,y:y+4,width:32,height:32,fill:'#ffffff'}));
+      if(kind==='exit-point')children.push(line(cx-8,cy-8,cx+8,cy+8),line(cx+8,cy-8,cx-8,cy+8));
+    } else if(kind==='terminate')children.push(line(cx-14,cy-14,cx+14,cy+14),line(cx+14,cy-14,cx-14,cy+14));
+    else if(kind==='junction')children.push(primitive('ellipse',{role:'uml-marker',x:cx-7,y:cy-7,width:14,height:14,fill:color}));
+    else if(kind==='time-event')children.push(primitive('pen',{role:'uml-frame',x:cx-20,y:y+4,fill:'none',points:[{x:cx-20,y:y+4},{x:cx+20,y:y+4},{x:cx-20,y:y+nodeHeight-4},{x:cx+20,y:y+nodeHeight-4},{x:cx-20,y:y+4}]}));
+    if(name)children.push(text('uml-name',x+(width-textWidth(name,12))/2,y+nodeHeight+20,name,12));
+  } else if (flowKinds.has(kind)) {
+    const points=kind==='send-signal'?[{x,y},{x:x+width-22,y},{x:x+width,y:y+height/2},{x:x+width-22,y:y+height},{x,y:y+height},{x,y}]
+      :kind==='receive-signal'?[{x,y},{x:x+width,y},{x:x+width,y:y+height},{x,y:y+height},{x:x+22,y:y+height/2},{x,y}]
+      :kind==='input-output'?[{x:x+22,y},{x:x+width,y},{x:x+width-22,y:y+height},{x,y:y+height},{x:x+22,y}]
+      :kind==='manual-input'?[{x,y:y+18},{x:x+width,y},{x:x+width,y:y+height},{x,y:y+height},{x,y:y+18}]
+      :kind==='preparation'?[{x:x+20,y},{x:x+width-20,y},{x:x+width,y:y+height/2},{x:x+width-20,y:y+height},{x:x+20,y:y+height},{x,y:y+height/2},{x:x+20,y}]
+      :kind==='document'?[{x,y},{x:x+width,y},{x:x+width,y:y+height-12},...Array.from({length:13},(_,i)=>({x:x+width*(1-i/12),y:y+height-12+8*Math.sin(i/12*Math.PI*2)})),{x,y}]:null;
+    if(points)children.push(primitive('pen',{role:'uml-frame',x,y,fill:'#ffffff',points}));
+    else children.push(rect(x,y,width,height));
+    if(kind==='subprocess')children.push(line(x+10,y,x+10,y+height),line(x+width-10,y,x+width-10,y+height));
+    if(kind==='weak-entity')children.push(rect(x+6,y+6,width-12,height-12,'none'));
+    children.push(text('uml-name',x+(width-textWidth(name,14))/2,y+height/2+5,name,14));
   } else if (compactKinds.has(kind)) {
     const cx=x+width/2;
     if(kind==='fork'||kind==='join')children.push(rect(kind==='join'?cx-6:x,y,kind==='join'?12:width,nodeHeight,color,{role:'uml-marker'}));

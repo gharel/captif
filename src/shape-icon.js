@@ -2,7 +2,8 @@
 export function shapeIcon(kind) {
   const box='<rect x="4" y="4" width="24" height="24" rx="2"/>';
   let body;
-  if(kind==='entity')body=box+'<path d="M4 11h24"/>';
+  if(kind==='code-block')body='<rect x="2" y="4" width="28" height="24" rx="4"/><path d="M2 11h28m-18 4-4 4 4 4m8-8 4 4-4 4m-2-9-3 10"/>';
+  else if(kind==='entity')body=box+'<path d="M4 11h24"/>';
   else if(['class','abstract-class','interface','object'].includes(kind))body=box+`<path d="M4 12h24${kind==='object'?'':'M4 20h24'}"/>`+(kind==='abstract-class'?'<path d="m15 6-2 4m2-4h4m-6 4h4"/>':kind==='interface'?'<circle cx="16" cy="8" r="1.5"/>':kind==='object'?'<path d="M12 9h8"/>':'');
   else if(kind==='note')body='<path d="M5 3h16l6 6v20H5Z"/><path d="M21 3v7h6M10 15h12M10 20h12M10 25h8"/>';
   else if(['association','usecase'].includes(kind))body='<ellipse cx="16" cy="16" rx="13" ry="9"/>'+(kind==='association'?'<path d="M4 16h24"/>':'');
@@ -23,6 +24,24 @@ export function shapeIcon(kind) {
   else if(kind==='component')body='<path d="M8 4h21v24H8V19m0-6v-3"/><path d="M3 9h10v5H3zM3 19h10v5H3z"/>';
   else if(kind==='artifact')body='<path d="M6 3h15l6 6v20H6ZM21 3v7h6"/>';
   else if(kind==='database')body='<ellipse cx="16" cy="7" rx="12" ry="4"/><path d="M4 7v18c0 5 24 5 24 0V7M4 16c0 5 24 5 24 0"/>';
+  else if(kind==='deployment-node')body='<path d="M3 9h21v20H3zm0 0 6-6h20v20l-5 6m0-20 5-6"/>';
+  else if(kind==='port')body='<rect x="8" y="8" width="16" height="16"/>';
+  else if(kind==='provided-interface')body='<path d="M2 16h13"/><circle cx="22" cy="16" r="7"/>';
+  else if(kind==='required-interface')body='<path d="M2 16h15m10-9c-12 0-12 18 0 18"/>';
+  else if(['entry-point','exit-point','junction'].includes(kind))body=`<circle cx="16" cy="16" r="${kind==='junction'?5:10}"${kind==='junction'?' fill="currentColor"':''}/>`+(kind==='exit-point'?'<path d="m11 11 10 10m0-10L11 21"/>':'');
+  else if(kind==='terminate')body='<path d="m6 6 20 20m0-20L6 26"/>';
+  else if(kind==='send-signal')body='<path d="M3 6h18l9 10-9 10H3z"/>';
+  else if(kind==='receive-signal')body='<path d="M3 6h26v20H3l8-10z"/>';
+  else if(kind==='time-event')body='<path d="M7 4h18L7 28h18z"/>';
+  else if(kind==='data-object')body='<path d="M6 3h15l6 6v20H6ZM21 3v7h6"/>';
+  else if(kind==='process')body=box;
+  else if(kind==='subprocess')body=box+'<path d="M9 4v24M23 4v24"/>';
+  else if(kind==='input-output')body='<path d="M9 6h21l-7 20H2z"/>';
+  else if(kind==='document')body='<path d="M4 4h24v22c-8-7-16 7-24 0z"/>';
+  else if(kind==='manual-input')body='<path d="M4 10 28 4v24H4z"/>';
+  else if(kind==='preparation')body='<path d="M8 5h16l7 11-7 11H8L1 16z"/>';
+  else if(kind==='weak-entity')body=box+'<rect x="7" y="7" width="18" height="18"/>';
+  else if(kind==='identifying-relationship')body='<path d="m16 2 14 14-14 14L2 16zm0 5 9 9-9 9-9-9z"/>';
   else body='<path d="M3 24h9V8h17m-5-5 5 5-5 5"/><circle cx="3" cy="24" r="2" fill="white"/>';
   return `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 }

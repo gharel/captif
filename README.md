@@ -6,6 +6,10 @@ Chaque push sur `main` lance les tests, compile le projet et le déploie sur Git
 
 Les règles de contribution et de validation se trouvent dans [AGENTS.md](AGENTS.md). La couverture automatique et la recette navigateur sont décrites dans [docs/TEST_PLAN.md](docs/TEST_PLAN.md). Lancer les tests avec `npm test` ; ils utilisent le runner natif Node, sans réseau ni accès aux copies réelles.
 
+**Bloc de code** : la première icône de la palette ajoute un bloc vide. Choisir Texte brut, SQL, JavaScript, TypeScript, CSS, HTML, PHP, Java, Markdown, Python, JSON, Bash ou XML dans son éditeur. La coloration est locale et immédiate ; le code n'est jamais exécuté. `Tab` insère deux espaces, `Ctrl/Cmd+Entrée` enregistre. Le langage est conservé par bloc et les couleurs apparaissent aussi dans le PDF. Voir [docs/CODE_BLOCKS.md](docs/CODE_BLOCKS.md).
+
+La palette comprend aussi les liens ERD en patte d'oie, les symboles de déploiement et d'interfaces graphiques, les événements, signaux et formes de processus. La bibliothèque et l'atelier utilisent des surfaces plus contrastées, une profondeur discrète et une palette d'icônes revisitée. Les formes sont toujours ajoutées sans texte de réponse ni exemple.
+
 Une copie numérique pour les évaluations : écrire du texte et dessiner des schémas sur des feuilles A4, puis imprimer la copie et son bilan en PDF.
 
 Projet JavaScript ESM, Vite 7 et Tailwind CSS 4 via le plugin officiel Vite. Interface en français, sans bibliothèque d'interface, sans compte ni serveur applicatif. Aucune police, image ou télémétrie distante n'est chargée par l'application.
@@ -44,7 +48,7 @@ Le dessin exige un pointeur ; les formulaires, l'ajout de texte et les commandes
 
 ## Sauvegarde et suivi
 
-La bibliothèque unique expose 53 formes et connexions sous forme d'icônes, sans onglet ni sélecteur de diagramme. Les infobulles utilisent les vrais noms : classe, objet, cas d'utilisation, paquetage, état, activité, entité/table, etc. Les boutons sont aussi nommés pour les lecteurs d'écran et activables au clavier. Cliquer insère un élément vide, à remplir directement sur la feuille. Les attributs et méthodes acceptent une ligne par entrée. Les relations attachées suivent leurs éléments ; les messages, activations et destructions se positionnent sur les lignes de vie. Les variantes graphiques locales (exclusion, message minuté/dérobant/avec délai) sont identifiées comme conventions. Voir [docs/DIAGRAM_LIBRARY.md](docs/DIAGRAM_LIBRARY.md).
+La bibliothèque unique expose 79 formes et connexions sous forme d'icônes, sans onglet ni sélecteur de diagramme. Les infobulles utilisent les vrais noms : classe, objet, cas d'utilisation, paquetage, état, activité, entité/table, etc. Les boutons sont aussi nommés pour les lecteurs d'écran et activables au clavier. Cliquer insère un élément vide, à remplir directement sur la feuille. Les attributs et méthodes acceptent une ligne par entrée. Les relations attachées suivent leurs éléments ; les messages, activations et destructions se positionnent sur les lignes de vie. Les variantes graphiques locales (exclusion, message minuté/dérobant/avec délai) sont identifiées comme conventions. Voir [docs/DIAGRAM_LIBRARY.md](docs/DIAGRAM_LIBRARY.md).
 
 L'éditeur de texte et son menu contextuel proposent gras, italique et souligné. `Ctrl/Cmd+B`, `Ctrl/Cmd+I` et `Ctrl/Cmd+U` basculent ces styles pendant la saisie. Le formatage concerne le champ entier ; texte et styles s'enregistrent ensemble et s'annulent ensemble. Les commandes d'alignement et de répartition disposent de leurs propres icônes.
 

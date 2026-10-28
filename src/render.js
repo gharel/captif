@@ -7,6 +7,7 @@ import { scaledDash } from './stroke.js';
 import { resolveConnectors,anchorsFor,isConnector,bendHandles } from './connectors.js';
 import { diagramPlaceholder,diagramActions,isDiagram } from './diagram-inline.js';
 import { editableConnector,resolveDiagramConnections } from './diagram-connections.js';
+import { codeSvg } from './code-highlight.js';
 export { W, H, textLines } from './geometry.js';
 export const escape = (v = '') => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -26,6 +27,7 @@ export function elementSvg(e, selected = false,editHints=false) {
   if (e.type === 'group') {
     const themedChildren=e.children.map(child=>{
       const next={...child};
+      if(child.role==='code-content')next._codeLanguage=e.codeLanguage||'plaintext';
       if(child.type==='text'&&!child.text.trim()&&['uml-name','uml-attributes','uml-operations','uml-condition'].includes(child.role)){
         const bounds=elementBounds(child);
         const following=e.children.filter(c=>c.type==='text'&&c.y>child.y).map(c=>elementBounds(c).y).sort((a,b)=>a-b)[0];
@@ -43,7 +45,7 @@ export function elementSvg(e, selected = false,editHints=false) {
       }
       if(['attribute-type','attribute-nullable','column-label'].includes(child.role))next.stroke='#8b909b';
       if(child.role==='attribute-key')next.stroke='#9b7622';
-      if(child.role==='header'||(child.type==='rect'&&child.role==='uml-decoration'&&child.width===e.width&&child.fill!=='none'))next._header=true;
+      if(['header','code-header'].includes(child.role)||(child.type==='rect'&&child.role==='uml-decoration'&&child.width===e.width&&child.fill!=='none'))next._header=true;
       return next;
     });
     inner = `${['Relation BDD','Relation UML'].includes(e.label) ? '' : `<rect class="group-hit" x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" fill="transparent" stroke="none"/>`}${themedChildren.map(child => elementSvg(child,false,editHints)).join('')}`;
@@ -70,7 +72,8 @@ export function elementSvg(e, selected = false,editHints=false) {
     const background = e.text.trim() && ['relation-name', 'cardinality-left', 'cardinality-right', 'uml-relation-name', 'uml-source-label', 'uml-target-label'].includes(e.role)
       ? `<rect class="relation-label-background" x="${bounds.x - 4}" y="${bounds.y - 2}" width="${bounds.width + 8}" height="${bounds.height + 4}" rx="3" fill="#ffffff" stroke="none" pointer-events="none"/>` : '';
     const textX=e._centerX??e.x;
-    const text = e.text.trim()||placeholder ? `<text${placeholder?' class="diagram-placeholder"':''} x="${textX}" y="${e.y}"${e._centerX!==undefined?' text-anchor="middle"':''} font-size="${size}" fill="${placeholder?'#9ca3b6':color}" font-family="${e.role?'Arial, Helvetica, sans-serif':'ui-monospace, monospace'}"${e.bold ? ' font-weight="700"' : ''}${e.italic ? ' font-style="italic"' : ''}${e.underline ? ' text-decoration="underline"' : ''}>${lines.map((line, i) => `<tspan x="${textX}" dy="${i ? size * 1.5 : 0}">${escape(line) || ' '}</tspan>`).join('')}</text>` : '';
+    let text = e.text.trim()||placeholder ? `<text${placeholder?' class="diagram-placeholder"':''} x="${textX}" y="${e.y}"${e._centerX!==undefined?' text-anchor="middle"':''} font-size="${size}" fill="${placeholder?'#9ca3b6':color}" font-family="${e.role?'Arial, Helvetica, sans-serif':'ui-monospace, monospace'}"${e.bold ? ' font-weight="700"' : ''}${e.italic ? ' font-style="italic"' : ''}${e.underline ? ' text-decoration="underline"' : ''}>${lines.map((line, i) => `<tspan x="${textX}" dy="${i ? size * 1.5 : 0}">${escape(line) || ' '}</tspan>`).join('')}</text>` : '';
+    if(e.role==='code-content')text=e.text?codeSvg(e,e._codeLanguage||'plaintext'):'';
     const hit=e._hitBounds||bounds;
     inner = `${background}<rect class="text-hit" x="${hit.x}" y="${hit.y}" width="${hit.width}" height="${hit.height}" fill="transparent" stroke="none"/>${text}`;
   }

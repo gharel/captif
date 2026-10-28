@@ -4,8 +4,8 @@ import { createUmlRelation } from './uml-relations.js';
 import { createEntityBox, isEntityBox } from './entity-box.js';
 
 const blankAttribute=()=>({name:'',type:'',key:'',nullable:false});
-export const isDiagram=e=>e?.type==='group'&&['Entité BDD','Association BDD','Relation BDD','Classe UML','Élément UML','Relation UML'].includes(e.label);
-export const editableDiagramText=e=>e?.type==='text'&&Boolean(e.role)&&!['column-label','empty-label'].includes(e.role);
+export const isDiagram=e=>e?.type==='group'&&['Entité BDD','Association BDD','Relation BDD','Classe UML','Élément UML','Relation UML','Bloc de code'].includes(e.label);
+export const editableDiagramText=e=>e?.type==='text'&&Boolean(e.role)&&!['column-label','empty-label','code-language'].includes(e.role);
 export function diagramPlaceholder(){return '';}
 export function emptyBdd(kind,elements=[],preferred=[]){
   if(kind==='entity')return createEntityBox();
@@ -18,6 +18,11 @@ export function emptyUml(kind,{relation=false,elements=[],preferred=[]}={}){
   const participants=elements.filter(e=>e.umlKind==='participant');
   const offset=Math.min(800,Math.max(90,...elements.filter(e=>e.relationKind?.startsWith('message-')).map(e=>e.offset||160))+70);
   if(relation){
+    if(kind.startsWith('erd-')){
+      const tables=elements.filter(e=>['Entité BDD','Association BDD'].includes(e.label)||['weak-entity','identifying-relationship'].includes(e.umlKind));
+      const chosen=tables.filter(e=>preferred.includes(e.id)),ends=chosen.length>=2?chosen:tables;
+      return createUmlRelation({kind,name:'',left:'',right:'',...(ends.length>=2?{sourceId:ends[0].id,targetId:ends[1].id}:{})});
+    }
     if(['message-found','message-lost'].includes(kind)){
       const participant=participants.find(e=>preferred.includes(e.id))||participants[0];
       return createUmlRelation({kind,name:'',left:'',right:'',offset,...(participant?{[kind==='message-found'?'targetId':'sourceId']:participant.id}:{})});

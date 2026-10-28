@@ -81,8 +81,8 @@ function labelAtRoute(label,route,obstacles=[],placed=[]){
   return clearLabel(label,candidates,obstacles,placed);
 }
 function turnMarker(marker,group,oldRoute,newRoute){
-  if(marker.type!=='pen'||!marker.points?.length)return marker;
-  const source=['aggregation','composition'].includes(group.relationKind);
+  if(marker.type!=='ellipse'&&(marker.type!=='pen'||!marker.points?.length))return marker;
+  const source=marker.rowId==='source'||['aggregation','composition'].includes(group.relationKind);
   const oldOrigin=source?oldRoute[0]:oldRoute.at(-1),newOrigin=source?newRoute[0]:newRoute.at(-1);
   const oldDirection=source?unit(oldRoute[0],oldRoute[1]):unit(oldRoute.at(-2),oldRoute.at(-1));
   const newDirection=source?unit(newRoute[0],newRoute[1]):unit(newRoute.at(-2),newRoute.at(-1));
@@ -91,6 +91,7 @@ function turnMarker(marker,group,oldRoute,newRoute){
     const along=dx*oldDirection.x+dy*oldDirection.y,across=-dx*oldDirection.y+dy*oldDirection.x;
     return {x:newOrigin.x+newDirection.x*along-newDirection.y*across,y:newOrigin.y+newDirection.y*along+newDirection.x*across};
   };
+  if(marker.type==='ellipse'){const center=transform({x:marker.x+marker.width/2,y:marker.y+marker.height/2});return {...marker,x:center.x-marker.width/2,y:center.y-marker.height/2};}
   return {...marker,...newOrigin,points:marker.points.map(transform)};
 }
 function groupWithRoute(group,routed,obstacles){
@@ -134,6 +135,7 @@ export function resolveDiagramConnections(page){
     }
     // The 24-unit source diamond needs a longer outgoing stub than a plain line.
     if(['aggregation','composition'].includes(group.relationKind))virtual.strokeWidth=Math.max(24,virtual.strokeWidth);
+    if(group.relationKind?.startsWith('erd-'))virtual.strokeWidth=Math.max(8,virtual.strokeWidth);
     virtuals.set(group.id,virtual);
   }
   const temporary={...page,elements:page.elements.map(e=>virtuals.get(e.id)||e)},resolved=resolveConnectors(temporary),routes=new Map(resolved.elements.filter(e=>virtuals.has(e.id)).map(e=>[e.id,e]));

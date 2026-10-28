@@ -1,6 +1,7 @@
 export { translateElement, elementBounds } from './geometry.js';
 import { UML_NODE_KINDS } from './uml-nodes.js';
 import { UML_RELATION_KINDS } from './uml-relations.js';
+import { CODE_LANGUAGES } from './code-languages.js';
 const TYPES = new Set(['rect', 'text', 'pen', 'ellipse', 'line', 'arrow', 'group']);
 const uid = () => globalThis.crypto.randomUUID();
 
@@ -139,7 +140,7 @@ export function validateDocument(value) {
       if (element.role !== undefined) {
         const roles = ['entity-name', 'attribute-name', 'attribute-type', 'attribute-key', 'attribute-nullable', 'association-name', 'relation-name', 'cardinality-left', 'cardinality-right', 'frame', 'header', 'separator', 'column-label', 'empty-label', 'relation-line', 'uml-name', 'uml-stereotype', 'uml-attributes', 'uml-operations', 'uml-condition', 'uml-frame', 'uml-decoration', 'uml-relation-line', 'uml-relation-name', 'uml-source-label', 'uml-target-label', 'uml-marker'];
         clean.role = string(element.role, 40);
-        if (!roles.includes(clean.role) && !['box-title','box-body'].includes(clean.role)) fail();
+        if (!roles.includes(clean.role) && !['box-title','box-body','code-content','code-header','code-language','code-decoration'].includes(clean.role)) fail();
       }
       if (element.rowId !== undefined) {
         clean.rowId = string(element.rowId, 128);
@@ -151,7 +152,8 @@ export function validateDocument(value) {
         if (clean.x + clean.width > 794 || clean.y + clean.height > 1123) fail();
         if (element.type === 'group') {
           clean.label = string(element.label, 80);
-          if (!['Classe UML', 'Entité BDD', 'Association BDD', 'Relation BDD', 'Élément UML', 'Relation UML'].includes(clean.label) || !Array.isArray(element.children) || element.children.length > 100) fail();
+          if (!['Classe UML', 'Entité BDD', 'Association BDD', 'Relation BDD', 'Élément UML', 'Relation UML','Bloc de code'].includes(clean.label) || !Array.isArray(element.children) || element.children.length > 100) fail();
+          if(element.codeLanguage!==undefined){if(clean.label!=='Bloc de code'||!Object.hasOwn(CODE_LANGUAGES,element.codeLanguage))fail();clean.codeLanguage=element.codeLanguage;}
           if (element.umlKind !== undefined) {
             if (element.umlKind !== 'relation' && !UML_NODE_KINDS.includes(element.umlKind)) fail();
             clean.umlKind = element.umlKind;
