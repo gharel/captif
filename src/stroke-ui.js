@@ -15,8 +15,10 @@ export function strokeMarkup() {
 
 export function mountStrokeUi({onChange,getCurrent}) {
   const $=id=>document.getElementById(id);
+  let rendered=null;
   function sync() {
     const {color,thickness,dash=''}=getCurrent();
+    const key=JSON.stringify([color,thickness,dash]);if(key===rendered)return;rendered=key;
     $('color').value=color;$('thickness').value=thickness;
     $('stroke-chip').style.background=color;$('stroke-hex').textContent=color.toUpperCase();
     $('thickness-value').textContent=`${thickness} px`;

@@ -5,7 +5,7 @@ import { resolveUmlRelations } from './uml-relations.js';
 import { resizeHandles } from './transforms.js';
 import { selectionBounds } from './selection.js';
 import { scaledDash } from './stroke.js';
-import { resolveConnectors,anchorsFor,bendHandles } from './connectors.js';
+import { resolveConnectors,anchorsForElements,bendHandles } from './connectors.js';
 import { diagramActions,isDiagram } from './diagram-inline.js';
 import { editableConnector,resolveDiagramConnections } from './diagram-connections.js';
 import { codeSvg } from './code-highlight.js';
@@ -129,7 +129,7 @@ export function pageSvg(page, { selected, selectedIds = [], editingGroup, grid =
   const selectedWire=editableConnector(selectedElement);
   const handles = selectedElement && !multiple.length && !attachedParent ? resizeHandles(selectedWire||selectedElement).map(h => `<rect class="resize-handle handle-${h.name}" data-resize="${h.name}" x="${h.x-handleSize/2}" y="${h.y-handleSize/2}" width="${handleSize}" height="${handleSize}" rx="2" fill="#fff" stroke="#635bff" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`).join('') : '';
   const marqueeSvg=marquee?`<rect class="marquee-selection" x="${Math.min(marquee.start.x,marquee.end.x)}" y="${Math.min(marquee.start.y,marquee.end.y)}" width="${Math.abs(marquee.end.x-marquee.start.x)}" height="${Math.abs(marquee.end.y-marquee.start.y)}" fill="#635bff12" stroke="#635bff" stroke-dasharray="5 3" vector-effect="non-scaling-stroke" pointer-events="none"/>`:'';
-  const ports=connectionMode?visible.flatMap(anchorsFor).map(p=>`<circle class="connection-anchor${snapAnchor?.shapeId===p.shapeId&&snapAnchor.side===p.side?' active':''}" data-anchor-shape="${escape(p.shapeId)}" data-anchor-side="${p.side}" cx="${p.x}" cy="${p.y}" r="${handleSize*.55}" fill="#fff" stroke="#635bff" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`).join(''):'';
+  const ports=connectionMode?anchorsForElements(visible).map(p=>`<circle class="connection-anchor${snapAnchor?.shapeId===p.shapeId&&snapAnchor.side===p.side?' active':''}" data-anchor-shape="${escape(p.shapeId)}" data-anchor-side="${p.side}" cx="${p.x}" cy="${p.y}" r="${handleSize*.55}" fill="#fff" stroke="#635bff" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`).join(''):'';
   const bends=selectedWire&&!multiple.length?bendHandles(selectedWire).map(h=>`<rect class="bend-handle axis-${h.axis}" data-bend-index="${h.index}" x="${h.x-handleSize*.4}" y="${h.y-handleSize*.4}" width="${handleSize*.8}" height="${handleSize*.8}" transform="rotate(45 ${h.x} ${h.y})" fill="#e9e5ff" stroke="#635bff" stroke-width="1.3" vector-effect="non-scaling-stroke"><title>Déplacer ce coude</title></rect>`).join(''):'';
   const activeDiagram=!multiple.length?(isDiagram(selectedElement)?selectedElement:visible.find(e=>isDiagram(e)&&e.children?.some(c=>c.id===selected))):null;
   const actions=editHints&&activeDiagram?diagramActions(activeDiagram,selected):[];

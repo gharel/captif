@@ -20,9 +20,11 @@
   .shape-icon-button:active:not(:disabled) { background:#eae4ff; transform:none; box-shadow:none; }
   .shape-icon-button[data-section-start] { border-top:2px solid #aab3c3; }
   #selection-heading { display:none; }
-  .selection-card { position:fixed; z-index:8; right:calc(var(--library-width) + 30px); bottom:76px; width:210px; max-height:50vh; overflow:auto; margin:0; background:#fff; border:1px solid #dfe3ec; border-radius:10px; box-shadow:0 8px 24px #17243b12; }
-  .selection-card h2 { font-size:13px; }
-  .selection-type { font-size:10px; }
+  .selection-card { position:fixed; z-index:14; display:flex; align-items:center; flex-wrap:wrap; gap:4px; width:max-content; max-width:420px; max-height:50vh; overflow:auto; padding:6px; margin:0; background:#fff; border:1px solid #dfe3ec; border-radius:9px; box-shadow:0 6px 20px #17243b12; }
+  .selection-card h2,.selection-card .selection-type { display:none; }
+  .selection-card .button { width:auto; margin:0; min-height:32px; padding:6px 9px; font-size:11px; border-color:transparent; }
+  .text-context { flex-wrap:wrap; overflow:auto; }
+  .zoom-control #zoom-label { width:48px; font-size:11px; font-weight:600; color:#526079; }
   .canvas-breadcrumb { gap:8px; justify-content:flex-start; min-height:28px; margin-bottom:6px; }
   #toggle-library { margin-left:auto; }
   #canvas-location { white-space:nowrap; }

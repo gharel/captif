@@ -19,6 +19,7 @@ Les demandes explicites de l'utilisateur priment sur ce document. Lire les spéc
 - `src/drafts.js` : brouillon local séparé, validation et reprise de la saisie non validée.
 - `src/performance.js`, `svg-patch.js` : caches bornés/faibles, cadence de rendu et conservation des groupes SVG inchangés.
 - `src/page-index.js`, `document-data.js`, `workspace-preferences.js` : indexation faible, normalisation sans copies inutiles et préférences visuelles indépendantes de la copie.
+- `src/floating-placement.js` : placement des commandes dans l'atelier et évitement des boîtes voisines. Les ancres de connecteurs sont indexées par collections immuables dans `connectors.js`.
 - `tests/*.test.js` : tests Node natifs ; `docs/` : spécifications et recettes visuelles.
 
 Préférer des fonctions pures et des changements ciblés. Ne pas ajouter de dépendance sans besoin concret. Le routage calculé, les repères d'édition et les poignées ne sont pas des données de copie.

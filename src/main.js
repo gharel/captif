@@ -30,6 +30,7 @@ import { patchSvg } from './svg-patch.js';
 import { TEXT_SIZE } from './geometry.js';
 import { pageIndex } from './page-index.js';
 import { normalizeCopy } from './document-data.js';
+import { placeFloating, floatingBoxes } from './floating-placement.js';
 import { readPreferences,writePreferences,toolShortcut,TOOL_KEYS } from './workspace-preferences.js';
 
 const loaded = loadCopy();
@@ -145,7 +146,7 @@ app.innerHTML = `
       </div>
       <div class="canvas-breadcrumb"><button id="toggle-pages" class="sidebar-toggle" aria-label="Réduire la colonne des feuilles" title="Afficher ou réduire les feuilles" aria-expanded="true">${icon('pages')}</button><span id="canvas-location">Feuille 01</span><span id="selection-summary" class="selection-summary" role="status" hidden></span><div class="group-context" id="group-context" hidden><span id="group-name"></span><button id="exit-group" class="text-button">Quitter le groupe <kbd class="shortcut-key">Échap</kbd></button></div><button id="toggle-library" class="sidebar-toggle" aria-label="Réduire la bibliothèque" title="Afficher ou réduire la bibliothèque" aria-expanded="true">${icon('layout')}</button></div>
       <div class="paper-scroll"><div id="paper-shell"><div class="paper-header"><span id="paper-identity">Votre nom · Votre évaluation</span><span id="paper-number">01</span></div><div id="paper"></div><div class="paper-footer"><span>CAPTIF / COPIE D'ÉVALUATION</span><span id="paper-pagination"></span></div></div></div>
-      <div class="desk-footer"><span id="tool-hint">MAJ + clic : sélectionner · ALT + glisser : dupliquer</span><div class="zoom-control"><button id="zoom-fit" title="Adapter la feuille à l'espace disponible">Ajuster</button><button id="zoom-out" aria-label="Réduire le zoom">−</button><span id="zoom-label">85 %</span><button id="zoom-in" aria-label="Augmenter le zoom">＋</button></div></div>
+      <div class="desk-footer"><span id="tool-hint">MAJ + clic : sélectionner · ALT + glisser : dupliquer</span><div class="zoom-control"><button id="zoom-fit" title="Adapter la feuille à l'espace disponible">Ajuster</button><button id="zoom-out" aria-label="Réduire le zoom">−</button><button id="zoom-label" type="button" title="Revenir à 100 %" aria-label="Revenir au zoom 100 %">85 %</button><button id="zoom-in" aria-label="Augmenter le zoom">＋</button></div></div>
     </main>
     <aside class="right-sidebar">
       <div class="diagram-layout-tools"><button id="align-button" class="button secondary" type="button" aria-expanded="false" aria-controls="align-popover">${icon('align')} Aligner</button><button id="auto-layout" class="button secondary" type="button">${icon('layout')} Réorganiser</button></div>
@@ -166,6 +167,9 @@ app.innerHTML = `
   ${umlDialogMarkup()}
   <section id="align-popover" popover aria-label="Aligner et répartir"><span class="eyebrow">DISPOSITION DE LA SÉLECTION</span><div class="align-command-grid">${[['left','À gauche'],['center-x','Centre horizontal'],['right','À droite'],['top','En haut'],['center-y','Centre vertical'],['bottom','En bas'],['distribute-x','Répartir horizontalement'],['distribute-y','Répartir verticalement']].map(([value,label])=>`<button class="button subtle" type="button" data-align="${value}" title="${label}" aria-label="${label}">${alignmentIcon(value)}<span>${label}</span></button>`).join('')}</div></section>
 `;
+
+document.querySelector('.desk').append(document.querySelector('.selection-card'));
+document.querySelector('.selection-card').setAttribute('role','region');
 
 function saveUmlElement(element, existing) {
   if(locked())return;
@@ -299,7 +303,7 @@ for(const [id,className,name] of [['toggle-pages','pages-collapsed','la colonne 
   document.querySelector(`#${id}`).onclick=()=>{
     const collapsed=document.querySelector('.workspace').classList.toggle(className),button=document.querySelector(`#${id}`);
     button.setAttribute('aria-expanded',String(!collapsed));button.setAttribute('aria-label',`${collapsed?'Afficher':'Réduire'} ${name}`);
-    saveVisualPreferences();fitPaper();positionEditingControls();
+    saveVisualPreferences();fitPaper();floatingFrame.schedule();
   };
 }
 
@@ -327,8 +331,9 @@ function positionEditingControls(){
   const top=Math.max(area.top+6,Math.min(area.bottom-42,field.top-46));
   for(const control of controls){Object.assign(control.style,{position:'fixed',left:`${left}px`,right:'auto',top:`${top}px`,bottom:'auto'});left+=control.offsetWidth+8;}
 }
-document.querySelector('.paper-scroll').addEventListener('scroll',positionEditingControls);
-window.addEventListener('resize',positionEditingControls);
+const floatingFrame=frameTask(()=>{positionEditingControls();updateTextContext();positionSelectionCommands();});
+window.addEventListener('scroll',()=>floatingFrame.schedule(),true);
+window.addEventListener('resize',()=>floatingFrame.schedule());
 
 function cancelTextEdit() {
   clearTimeout(draftTimer);
@@ -559,6 +564,7 @@ function renderPaper() {
   document.querySelector('#group-name').textContent = group()?.label || '';
   document.querySelector('#paper-shell').style.width = `${W * zoom / 100}px`;
   document.querySelector('#zoom-label').textContent = `${zoom} %`;
+  document.querySelector('#zoom-label').setAttribute('aria-label',`Zoom ${zoom} %, revenir à 100 %`);
   document.querySelector('#paper').style.cursor = tool === 'select' ? 'default' : 'crosshair';
   strokeUi?.sync();
   updateInspector();
@@ -593,6 +599,7 @@ function updateInspector() {
   const chosen=new Set(selectionIds());
   document.querySelector('#align-button').disabled=locked()||page().elements.filter(e=>chosen.has(e.id)&&isLayoutBox(e)).length<2;
   document.querySelector('#auto-layout').disabled=locked()||!page().elements.some(isLayoutBox);
+  positionSelectionCommands();
 }
 
 const thumbnailSvg=weakMemo(p=>pageSvg(p));
@@ -721,11 +728,31 @@ document.querySelector('#context-size').onchange = e => {
   change(next);
 };
 
+function workspaceArea(){const rect=document.querySelector('.paper-scroll').getBoundingClientRect();return {left:rect.left+8,right:rect.right-8,top:Math.max(78,rect.top+8),bottom:rect.bottom-8};}
+function positionFloating(node,target){
+  const area=workspaceArea();node.style.maxWidth=`${Math.max(0,area.right-area.left)}px`;node.style.maxHeight=`${Math.max(0,area.bottom-area.top)}px`;
+  const paperRect=document.querySelector('#paper svg').getBoundingClientRect(),scale=paperRect.width/W;
+  const exclude=new Set([selected,parentGroup(selected)?.id]);
+  const obstacles=floatingBoxes(resolvedPage().elements).filter(e=>!exclude.has(e.id)).map(({box})=>({left:paperRect.left+box.x*scale,top:paperRect.top+box.y*scale,right:paperRect.left+(box.x+box.width)*scale,bottom:paperRect.top+(box.y+box.height)*scale}));
+  const position=placeFloating(target,{width:node.offsetWidth,height:node.offsetHeight},area,10,obstacles);
+  Object.assign(node.style,{left:`${position.left}px`,top:`${position.top}px`,right:'auto',bottom:'auto'});
+}
+function canvasElementNode(id){return document.querySelector(`#paper [data-element="${CSS.escape(id)}"]`);}
+function positionSelectionCommands(){
+  const card=document.querySelector('.selection-card'),element=item();
+  if(!element||selectionIds().length!==1||editingText||gesture?.changed||element.type!=='group'&&!editableConnector(element)){card.hidden=true;return;}
+  if(![...card.querySelectorAll('button')].some(button=>!button.hidden&&!button.disabled)){card.hidden=true;return;}
+  const node=canvasElementNode(element.id);if(!node){card.hidden=true;return;}
+  const target=node.getBoundingClientRect(),area=workspaceArea();
+  if(target.bottom<area.top||target.top>area.bottom||target.right<area.left||target.left>area.right){card.hidden=true;return;}
+  card.hidden=false;card.setAttribute('aria-label',`Options : ${document.querySelector('#selection-title').textContent}`);positionFloating(card,target);
+}
+
 function updateTextContext() {
   const menu = document.querySelector('#text-context');
   const e = item();
   if (!e || selectionIds().length>1 || e.type !== 'text' || editingText || gesture?.changed || locked() || document.querySelector('dialog[open]')) { menu.hidden = true; return; }
-  const node = [...document.querySelectorAll('#paper [data-element]')].find(node => node.dataset.element === e.id);
+  const node = canvasElementNode(e.id);
   if (!node) { menu.hidden = true; return; }
   const bounds = node.getBoundingClientRect();
   const viewport = document.querySelector('.paper-scroll').getBoundingClientRect();
@@ -741,15 +768,8 @@ function updateTextContext() {
   sizeControl.title = e.role ? 'Taille adaptée automatiquement au composant du diagramme' : 'Taille du texte';
   document.querySelector('#context-color').value = e.stroke;
   for(const style of TEXT_STYLES)document.querySelector(`#context-${style}`).setAttribute('aria-pressed',Boolean(e[style]));
-  const width = menu.offsetWidth;
-  const left = bounds.right + width + 12 < innerWidth ? bounds.right + 10 : Math.max(10, Math.min(innerWidth - width - 10, bounds.left));
-  const top = left > bounds.right ? bounds.top : bounds.top - menu.offsetHeight - 10;
-  menu.style.left = `${left}px`;
-  menu.style.top = `${Math.max(78, Math.min(innerHeight - menu.offsetHeight - 12, top))}px`;
+  positionFloating(menu,bounds);
 }
-document.querySelector('.paper-scroll').addEventListener('scroll', updateTextContext);
-window.addEventListener('scroll', updateTextContext, true);
-window.addEventListener('resize', updateTextContext);
 
 function readAttributeInputs() {
   return [...document.querySelectorAll('#attribute-rows tr')].map(row => ({
@@ -837,11 +857,15 @@ function fitPaper() {
   const nextZoom = Math.min(100, Math.max(30, Math.floor((document.querySelector('.paper-scroll').clientWidth - 36) / W * 100)));
   if (nextZoom !== zoom) { zoom = nextZoom; renderPaper(); }
 }
+document.querySelector('#zoom-label').onclick = () => {fitZoom=false;zoom=100;renderPaper();};
 document.querySelector('#zoom-fit').onclick = () => { fitZoom = true; fitPaper(); };
-new ResizeObserver(fitPaper).observe(document.querySelector('.paper-scroll'));
+new ResizeObserver(()=>{fitPaper();floatingFrame.schedule();}).observe(document.querySelector('.paper-scroll'));
 
+let pointerBounds=null;
+window.addEventListener('scroll',()=>{pointerBounds=null;},true);
+window.addEventListener('resize',()=>{pointerBounds=null;});
 function point(event) {
-  const bounds = document.querySelector('#paper svg').getBoundingClientRect();
+  const bounds = gesture?(pointerBounds??=document.querySelector('#paper svg').getBoundingClientRect()):document.querySelector('#paper svg').getBoundingClientRect();
   return { x: Math.max(24, Math.min(W - 24, (event.clientX - bounds.left) * W / bounds.width)), y: Math.max(24, Math.min(H - 24, (event.clientY - bounds.top) * H / bounds.height)) };
 }
 function connectorDraft(owner,wire){
@@ -856,6 +880,7 @@ paperNode.addEventListener('click',event=>{
 });
 paperNode.addEventListener('keydown',event=>{const action=event.target.closest('[data-diagram-action]');if(action&&['Enter',' '].includes(event.key)){event.preventDefault();event.stopPropagation();performDiagramAction(action.closest('[data-diagram-owner]').dataset.diagramOwner,action.dataset.diagramAction);}});
 paperNode.onpointerdown = e => {
+  pointerBounds=null;
   if (locked() || e.button !== 0 || !e.target.closest('svg')) return;
   if (editingText && !commitTextEdit()) return;
   if (gesture) return;
@@ -983,7 +1008,7 @@ paperNode.onpointermove = e => {
     const drawn=createShape(el,g.start,p,{shift:e.shiftKey,alt:e.altKey&&!g.sourceAnchor});
     g.draft=attachEndpoint(drawn,'end',{x:drawn.x2,y:drawn.y2},g.snapAnchor);
   }else g.draft=createShape(el,g.start,p,{shift:e.shiftKey,alt:e.altKey});
-  document.querySelector('#text-context').hidden=true;gestureFrame.schedule();
+  document.querySelector('#text-context').hidden=true;document.querySelector('.selection-card').hidden=true;gestureFrame.schedule();
 };
 paperNode.onpointerup = e => {
   gestureFrame.flush();
@@ -1028,6 +1053,7 @@ window.addEventListener('keydown', e => {
   if(shortcut&&!gesture&&!locked()){e.preventDefault();setTool(shortcut);return;}
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); travel(e.shiftKey ? redo : undo); }
   if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
+  if(e.key==='Enter'&&e.target.closest('button,a,[role="button"]'))return;
   if (e.key === 'Enter' && selectionIds().length===1 && item()?.type === 'group') { e.preventDefault(); enterGroup(selected); }
   else if (e.key === 'Enter' && selectionIds().length===1 && item()?.type === 'text') { e.preventDefault(); beginTextEdit(selected); }
   if (e.key === 'Escape') { if (editingGroup) exitGroup(); else { gesture = null; selected = null; setTool('select'); } }

@@ -1,4 +1,5 @@
 import { W,H,elementBounds } from './geometry.js';
+import { weakMemo } from './performance.js';
 
 const round=n=>Number(n.toFixed(3));
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -18,9 +19,23 @@ export function anchorsFor(shape){
   const b=elementBounds(shape);
   return [{side:'n',x:b.x+b.width/2,y:b.y},{side:'e',x:b.x+b.width,y:b.y+b.height/2},{side:'s',x:b.x+b.width/2,y:b.y+b.height},{side:'w',x:b.x,y:b.y+b.height/2}].map(p=>({shapeId:shape.id,...p,...point(p)}));
 }
+const cachedAnchors=weakMemo(shape=>Object.freeze(anchorsFor(shape).map(Object.freeze))),CELL=64;
+export const anchorsForElements=weakMemo(elements=>Object.freeze(elements.flatMap(cachedAnchors)));
+const anchorIndex=weakMemo(elements=>{
+  const anchors=anchorsForElements(elements),buckets=new Map();
+  anchors.forEach((anchor,order)=>{const key=`${Math.floor(anchor.x/CELL)},${Math.floor(anchor.y/CELL)}`;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push({anchor,order});});
+  return {anchors,buckets};
+});
 export function findAnchor(elements,p,tolerance=16,exclude=null){
+  if(!Number.isFinite(p?.x)||!Number.isFinite(p?.y)||Number.isNaN(tolerance)||tolerance<0)return null;
+  const index=anchorIndex(elements);let candidates=index.anchors;
+  if(tolerance<=128){
+    const nearby=[];
+    for(let x=Math.floor((p.x-tolerance)/CELL);x<=Math.floor((p.x+tolerance)/CELL);x++)for(let y=Math.floor((p.y-tolerance)/CELL);y<=Math.floor((p.y+tolerance)/CELL);y++)nearby.push(...(index.buckets.get(`${x},${y}`)||[]));
+    candidates=nearby.sort((a,b)=>a.order-b.order).map(item=>item.anchor);
+  }
   let best=null,distance=tolerance;
-  for(const shape of elements)for(const anchor of anchorsFor(shape)){
+  for(const anchor of candidates){
     if(exclude?.shapeId===anchor.shapeId&&exclude.side===anchor.side)continue;
     const next=Math.hypot(p.x-anchor.x,p.y-anchor.y);
     if(next<=distance){best=anchor;distance=next;}
@@ -173,6 +188,7 @@ function freeWaypoint(value,obstacles){
 
 export function resolveConnectors(page){
   const shapes=page.elements.filter(canAttach),byId=new Map(shapes.map(e=>[e.id,e]));
+  let boxes;
   const prior=page.elements.flatMap(e=>{
     if(['Relation BDD','Relation UML'].includes(e.label))return e.children.filter(c=>['relation-line','uml-relation-line'].includes(c.role)).map(c=>c.points||[{x:c.x,y:c.y},{x:c.x2,y:c.y2}]);
     return ['line','arrow'].includes(e.type)&&!isConnector(e)?[[{x:e.x,y:e.y},{x:e.x2,y:e.y2}]]:[];
@@ -180,12 +196,12 @@ export function resolveConnectors(page){
   const elements=page.elements.map(connector=>{
     if(!isConnector(connector))return connector;
     const source=byId.get(connector.sourceId),target=byId.get(connector.targetId);
-    const sourcePort=source&&anchorsFor(source).find(p=>p.side===connector.sourceAnchor),targetPort=target&&anchorsFor(target).find(p=>p.side===connector.targetAnchor);
+    const sourcePort=source&&cachedAnchors(source).find(p=>p.side===connector.sourceAnchor),targetPort=target&&cachedAnchors(target).find(p=>p.side===connector.targetAnchor);
     const start=point(sourcePort||{x:connector.x,y:connector.y}),end=point(targetPort||{x:connector.x2,y:connector.y2});
     const clearance=12+(connector.strokeWidth||2)/2,lead=clearance+8;
     const stub=(p,port)=>{const v=port?vectors[port.side]:{x:0,y:0};return point({x:clamp(p.x+v.x*lead,12,W-12),y:clamp(p.y+v.y*lead,12,H-12)});};
     const first=stub(start,sourcePort),last=stub(end,targetPort);
-    const obstacles=shapes.map(e=>{const b=elementBounds(e);return {...b,x:b.x-clearance,y:b.y-clearance,width:b.width+clearance*2,height:b.height+clearance*2};}).filter(b=>!(!sourcePort&&inside(start,b))&&!(!targetPort&&inside(end,b)));
+    const obstacles=(boxes??=shapes.map(elementBounds)).map(b=>({...b,x:b.x-clearance,y:b.y-clearance,width:b.width+clearance*2,height:b.height+clearance*2})).filter(b=>!(!sourcePort&&inside(start,b))&&!(!targetPort&&inside(end,b)));
     const recent=prior.slice(-12),manual=(connector.waypoints||[]).slice(0,32).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)).map(p=>freeWaypoint(p,obstacles));
     const passages=[first,...manual,last],middle=[];let routeBlocked=false;
     for(let i=1;i<passages.length;i++){
