@@ -107,7 +107,7 @@ function persist() {
     const saved = saveCopy(doc(), monitor.snapshot(), notes);
     const label = document.querySelector('#save-state');
     if (label) label.textContent = `Enregistré à ${new Date(saved).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
-  } catch { document.querySelector('#save-state').textContent = '⚠ Non enregistré — exportez la copie'; toast('Sauvegarde impossible : stockage plein ou interdit. Gardez cette page ouverte et exportez votre copie après la session.', true); }
+  } catch { document.querySelector('#save-state').textContent = '⚠ Non enregistré - exportez la copie'; toast('Sauvegarde impossible : stockage plein ou interdit. Gardez cette page ouverte et exportez votre copie après la session.', true); }
 }
 
 monitor = createMonitor({ restored: loaded.session, onChange: () => { if (monitor) { persist(); updateStats(); } } });
@@ -124,9 +124,9 @@ function change(next) {
 
 app.innerHTML = `
   <header class="app-header flex items-center justify-between gap-4">
-    <a href="#" class="brand" aria-label="Captif, espace de travail"><span class="brand-mark">${icon('pages')}</span><span class="brand-copy"><span class="brand-title">captif</span><small>VOTRE ATELIER D'ÉVALUATION</small></span></a>
+    <a href="#" class="brand" aria-label="Captif, espace de travail"><span class="brand-mark">${icon('pages')}</span><span class="brand-copy"><span class="brand-title">Captif</span><small>VOTRE ATELIER D'ÉVALUATION</small></span></a>
     <div class="header-session"><span class="status-dot"></span><span id="session-label">Espace de préparation</span><span class="header-divider"></span><span id="session-time" class="tabular-nums">00:00:00</span></div>
-    <div class="flex gap-2"><button id="journal-button" class="button subtle" aria-label="Journal — aucune absence observée"><span id="journal-indicator" class="status-dot" aria-hidden="true"></span><span>Journal</span></button><button id="print" class="button secondary">↗ <span>Imprimer / PDF</span></button><button id="session" class="button primary">Démarrer l'évaluation <span>→</span></button></div>
+    <div class="flex gap-2"><button id="journal-button" class="button subtle" aria-label="Journal - aucune absence observée"><span id="journal-indicator" class="status-dot" aria-hidden="true"></span><span>Journal</span></button><button id="print" class="button secondary">↗ <span>Imprimer / PDF</span></button><button id="session" class="button primary">Démarrer l'évaluation <span>→</span></button></div>
   </header>
   <div class="workspace">
     <aside class="left-sidebar">
@@ -656,7 +656,7 @@ function updateStats() {
   for(const selector of ['#journal-indicator','#journal-status-indicator'])document.querySelector(selector).classList.toggle('has-absence',observed);
   document.querySelector('#journal-status').classList.toggle('has-absence',observed);
   setText('#journal-status-text',absenceLabel);
-  document.querySelector('#journal-button').setAttribute('aria-label',`Journal — ${absenceLabel.toLowerCase()}`);
+  document.querySelector('#journal-button').setAttribute('aria-label',`Journal - ${absenceLabel.toLowerCase()}`);
   document.querySelector('#journal-button').title=absenceLabel;
   if(document.querySelector('#journal-dialog').open){
     const content=document.querySelector('#journal-content'),scroll=content.querySelector('.journal-table')?.scrollTop||0;
@@ -799,7 +799,7 @@ function readAttributeInputs() {
   }));
 }
 function renderAttributeRows(attributes) {
-  document.querySelector('#attribute-rows').innerHTML = attributes.map((attribute, index) => `<tr><td><select data-field="key" aria-label="Clé de l'attribut ${index + 1}">${['','PK','FK','PK,FK'].map(key => `<option value="${key}"${key === attribute.key ? ' selected' : ''}>${key || '—'}</option>`).join('')}</select></td><td><input data-field="name" aria-label="Nom de l'attribut ${index + 1}" value="${esc(attribute.name)}" maxlength="40" required placeholder="nom_attribut" /></td><td><input data-field="type" aria-label="Type de l'attribut ${index + 1}" value="${esc(attribute.type)}" list="sql-types" maxlength="30" required /></td><td><input data-field="nullable" aria-label="Valeur NULL autorisée pour l'attribut ${index + 1}" type="checkbox"${attribute.nullable ? ' checked' : ''} /></td><td><button data-remove-row="${index}" type="button" class="attribute-remove" aria-label="Supprimer l'attribut ${index + 1}">×</button></td></tr>`).join('');
+  document.querySelector('#attribute-rows').innerHTML = attributes.map((attribute, index) => `<tr><td><select data-field="key" aria-label="Clé de l'attribut ${index + 1}">${['','PK','FK','PK,FK'].map(key => `<option value="${key}"${key === attribute.key ? ' selected' : ''}>${key || '-'}</option>`).join('')}</select></td><td><input data-field="name" aria-label="Nom de l'attribut ${index + 1}" value="${esc(attribute.name)}" maxlength="40" required placeholder="nom_attribut" /></td><td><input data-field="type" aria-label="Type de l'attribut ${index + 1}" value="${esc(attribute.type)}" list="sql-types" maxlength="30" required /></td><td><input data-field="nullable" aria-label="Valeur NULL autorisée pour l'attribut ${index + 1}" type="checkbox"${attribute.nullable ? ' checked' : ''} /></td><td><button data-remove-row="${index}" type="button" class="attribute-remove" aria-label="Supprimer l'attribut ${index + 1}">×</button></td></tr>`).join('');
   document.querySelector('#add-attribute').disabled = attributes.length >= 12;
 }
 document.querySelector('#add-attribute').onclick = () => { const attributes = readAttributeInputs(); if (attributes.length < 12) { attributes.push({ name: '', type: 'VARCHAR(100)', key: '', nullable: true }); renderAttributeRows(attributes); document.querySelector('#attribute-rows tr:last-child [data-field="name"]').focus(); } };
@@ -1165,7 +1165,7 @@ document.querySelector('#new-copy').onclick = async () => {
 };
 
 renderPaper(); renderPages(); updateStats();
-if (loaded.error) { document.querySelector('#save-state').textContent = '⚠ Sauvegarde d’origine conservée — exportez cette copie'; toast(loaded.error, true); }
+if (loaded.error) { document.querySelector('#save-state').textContent = '⚠ Sauvegarde d’origine conservée - exportez cette copie'; toast(loaded.error, true); }
 else if (loaded.document) toast('Votre copie a été restaurée depuis cet appareil.');
 if (monitor.snapshot().status === 'active') {
   monitor.signal('visibility', !document.hidden); monitor.signal('focus', document.hasFocus()); persist();
