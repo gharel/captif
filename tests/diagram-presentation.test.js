@@ -52,14 +52,15 @@ test('chaque type coloré a son dégradé lumineux exclusif et son texte lisible
   };
   const seen=new Set();
   for(const [kind,stops] of Object.entries(DIAGRAM_COLORS)){
-    assert.equal(stops.length,2);
+    assert.equal(stops.length,3);
     for(const stop of stops){assert.match(stop,/^#[a-f0-9]{6}$/);assert.ok(!seen.has(stop),kind);seen.add(stop);}
     const rgb=stops.map(c=>c.slice(1).match(/../g).map(v=>parseInt(v,16)));
     assert.ok(Math.max(...rgb[0].map((v,i)=>Math.abs(v-rgb[1][i])))>=40,`${kind}: transition colorée`);
     const foreground=luminance('#172033');
-    for(let i=0;i<=20;i++){
-      const hex='#'+rgb[0].map((v,k)=>Math.round(v+(rgb[1][k]-v)*i/20).toString(16).padStart(2,'0')).join('');
-      assert.ok((luminance(hex)+.05)/(foreground+.05)>=4.5,`${kind}: contraste à ${i*5}%`);
+    for(let i=0;i<=40;i++){
+      const segment=i<20?0:1,t=(i-segment*20)/20;
+      const hex='#'+rgb[segment].map((v,k)=>Math.round(v+(rgb[segment+1][k]-v)*t).toString(16).padStart(2,'0')).join('');
+      assert.ok((luminance(hex)+.05)/(foreground+.05)>=4.5,`${kind}: contraste à ${i*2.5}%`);
     }
   }
   assert.ok(Object.keys(DIAGRAM_COLORS).length>=9);
@@ -70,4 +71,16 @@ test('chaque type coloré a son dégradé lumineux exclusif et son texte lisible
   const group=emptyBdd('entity'),title=group.children.find(c=>c.role==='box-title');
   assert.equal(diagramTitleColor(group,title),'#172033');
   assert.match(elementSvg(group),/x1="0%" y1="35%" x2="100%" y2="65%"/);
+  assert.match(elementSvg(group),/<stop offset="50%"/);
+});
+
+test('les types principaux conservent des dominantes distinctes',()=>{
+  const hsv=hex=>{
+    const [r,g,b]=hex.slice(1).match(/../g).map(v=>parseInt(v,16)/255),max=Math.max(r,g,b),min=Math.min(r,g,b),delta=max-min;
+    return ((max===r?(g-b)/delta:max===g?(b-r)/delta+2:(r-g)/delta+4)*60+360)%360;
+  };
+  const expected={entity:[135,165],association:[210,230],class:[265,285],object:[20,40],usecase:[325,345],participant:[0,15],fragment:[40,55],'abstract-class':[175,195]};
+  for(const [kind,[min,max]] of Object.entries(expected)){
+    const hue=hsv(DIAGRAM_COLORS[kind][1]);assert.ok(hue>=min&&hue<=max,`${kind}: ${hue}`);
+  }
 });

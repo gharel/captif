@@ -2,15 +2,15 @@ import { textLines } from './geometry.js';
 const INTERNAL_LABELS=new Set(['usecase','action','decision','component','artifact','database','deployment-node','data-object','identifying-relationship','process','subprocess','input-output','document','manual-input','preparation','weak-entity','send-signal','receive-signal']);
 // Exclusive color transitions inspired by the supplied gradient reference.
 export const DIAGRAM_COLORS=Object.freeze(Object.fromEntries(Object.entries({
-  entity:['#52dfbf','#23aa9b'],
-  association:['#52e6ef','#4caff7'],
-  class:['#b56af2','#f256b3'],
-  'abstract-class':['#ba85ff','#8e79ef'],
-  interface:['#58c76f','#e5f25d'],
-  object:['#ffd268','#ff68bd'],
-  participant:['#a7d5ff','#638bff'],
-  usecase:['#ffab37','#ff5638'],
-  fragment:['#ffda4f','#ff9b50'],
+  entity:['#b6e9a0','#68ca94','#35a780'],
+  association:['#b6d5ff','#75a6f3','#6b8ede'],
+  class:['#d7b7f0','#ae80d5','#9c7dcb'],
+  'abstract-class':['#a1eeee','#57cbd5','#32a6be'],
+  interface:['#ced6de','#9ba8b8','#8392a7'],
+  object:['#ffda8a','#ffac63','#ed8358'],
+  participant:['#ffc6b5','#ef8d83','#d8626d'],
+  usecase:['#ffbfd6','#ef88b7','#d571a6'],
+  fragment:['#fff0a0','#f4d26f','#dbb44a'],
 }).map(([kind,stops])=>[kind,Object.freeze(stops)])));
 
 /** Display-only geometry shared by SVG and direct editing. Never changes the copy. */
