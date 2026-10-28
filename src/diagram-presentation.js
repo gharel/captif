@@ -41,10 +41,6 @@ export function diagramSurface(group,child){
   return null;
 }
 
-function coloredDiagramTitle(group,child){
-  return ['box-title','entity-name','association-name'].includes(child.role)||group.umlKind==='fragment'&&child.role==='uml-stereotype'||['uml-name','uml-stereotype'].includes(child.role)&&['class','abstract-class','interface','object','participant','usecase'].includes(group.umlKind);
-}
-
 export function diagramTitleColor(group,child){
-  return coloredDiagramTitle(group,child)?'#172033':child.stroke||'#263246';
+  return child.type==='text'&&group.label!=='Bloc de code'?group.stroke||child.stroke||'#888c94':child.stroke||'#263246';
 }

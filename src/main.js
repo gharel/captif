@@ -23,7 +23,6 @@ import { isCodeBlock, createCodeBlock, updateCodeBlock, CODE_LANGUAGES } from '.
 import { highlightHtml } from './code-highlight.js';
 import { directTextPlacement } from './direct-editing.js';
 import { diagramTitleColor } from './diagram-presentation.js';
-import { DEFAULT_STROKE,DEFAULT_TEXT } from './stroke.js';
 import './direct-editing.css';
 import './atelier.css';
 import { weakMemo, frameTask } from './performance.js';
@@ -725,7 +724,7 @@ function styleSelected(patch) {
 function insertText(p, autoPlace = false) {
   if (locked()) return;
   const text = '';
-  let element = { id: id(), type: 'text', ...p, text, fontSize, width:Math.min(320,W-32-p.x), height:fontSize*1.3, stroke: color===DEFAULT_STROKE?DEFAULT_TEXT:color, strokeWidth: thickness };
+  let element = { id: id(), type: 'text', ...p, text, fontSize, width:Math.min(320,W-32-p.x), height:fontSize*1.3, stroke: color, strokeWidth: thickness };
   if (autoPlace) { try { element = placeElement(element); } catch (error) { toast(error.message, true); return; } }
   if (!textFits(element)) { toast('Le texte ne tient pas à cet endroit. Cliquez plus haut ou plus à gauche, ou répartissez le texte sur plusieurs feuilles.', true); return; }
   editingGroup = null; selected = element.id; change(addElement(doc(), activePage, element)); setTool('select');

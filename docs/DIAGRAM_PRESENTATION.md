@@ -1,5 +1,9 @@
 # Présentation des textes et en-têtes
 
+Texte et tracé : sur demande utilisateur, les textes de diagramme reprennent désormais la couleur du trait de leur groupe, titres et corps compris, dans le rendu et la saisie directe. Conserver la coloration syntaxique des blocs de code. Tester le gris par défaut et une couleur personnalisée, sans modifier la copie sauvegardée. Cette demande remplace les titres anthracite et couleurs dédiées aux attributs.
+
+Validation texte/tracé : 213 tests réussis. Recette navigateur sur la copie fictive à `localhost:5174` : contour, titre SVG et champ d’édition utilisent tous `#888c94`. Capture `screenshots/text-matches-stroke.png`. Le contraste du texte sur les en-têtes colorés dépend désormais du trait choisi ; la précédente validation de contraste du texte anthracite ne s’applique plus. Pas de nouvelle impression PDF native.
+
 Direction actuelle : référence « gradient set », dégradés doux à trois nuances d’une dominante exclusive par type : entité verte, association bleue, classe violette, objet orange, cas d’utilisation rose, participant rouge, fragment jaune ; modèles historiques cyan et gris bleuté. Les couleurs de types différents doivent être perceptuellement distinctes, sans transition violet/rose ou jaune/rose commune à plusieurs types. Conserver la direction horizontale légèrement diagonale, les contours gris et le centrage. Tester trois arrêts distincts, la dominance des couleurs et le contraste du texte sur toute la transition avant développement.
 
 Recette de cette palette : contrôle navigateur sur copie fictive avec les six types principaux, texte et contours conservés, absence d’erreur console. Capture `screenshots/distinct-gradient-families.png`. Tests : trois arrêts exclusifs, dominantes dans des plages de teintes différentes et contraste texte ≥ 4,5:1 à 41 positions du dégradé. Pas de nouvelle impression PDF native.

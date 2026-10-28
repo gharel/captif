@@ -14,7 +14,7 @@ test('le dessin commence avec un trait de 1 px',()=>{
   assert.equal(node.strokeWidth,1);assert.ok(node.children.every(c=>c.strokeWidth===1));
 });
 
-test('les contours et connexions partagent un gris léger contrasté, les textes restent sombres',()=>{
+test('les contours, connexions et textes partagent le gris léger choisi',()=>{
   const gray=DEFAULT_DRAWING_STYLE.color;
   assert.equal(gray,'#888c94');
   const lum=hex=>{const c=hex.slice(1).match(/../g).map(v=>parseInt(v,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return c[0]*.2126+c[1]*.7152+c[2]*.0722;};
@@ -25,7 +25,7 @@ test('les contours et connexions partagent un gris léger contrasté, les textes
       if(child.type!=='text')assert.equal(child.stroke,gray,`${node.umlKind||node.label}: ${child.role}`);
     }
     const styled=applyDrawingStyle(node,DEFAULT_DRAWING_STYLE);
-    for(const text of styled.children.filter(c=>c.type==='text'))assert.notEqual(text.stroke,gray);
+    for(const text of styled.children.filter(c=>c.type==='text'))assert.equal(text.stroke,gray);
   }
   const code=createCodeBlock();
   for(const frame of code.children.filter(c=>['frame','code-header'].includes(c.role)))assert.equal(frame.stroke,gray);

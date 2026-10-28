@@ -46,8 +46,6 @@ export function elementSvg(e, selected = false,editHints=false) {
       if(['box-title','entity-name','uml-name','association-name'].includes(child.role)){
         if((child.role==='entity-name'||['class','abstract-class','interface','object'].includes(e.umlKind))&&child.bold===undefined)next.bold=true;
       }
-      if(['attribute-type','attribute-nullable','column-label'].includes(child.role))next.stroke='#8b909b';
-      if(child.role==='attribute-key')next.stroke='#9b7622';
       if(['header','code-header'].includes(child.role)||(child.type==='rect'&&child.role==='uml-decoration'&&child.width===e.width&&child.fill!=='none'))next._header=true;
       return next;
     });
