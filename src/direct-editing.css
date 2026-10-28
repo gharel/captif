@@ -1,0 +1,21 @@
+/* The editable field occupies the SVG text area; only commands float outside it. */
+#inline-editor.direct-editor { min-width:0; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; overflow:visible; }
+#paper .editing-original > text { visibility:hidden; }
+.text-editing #paper :is(.selection-outline,.resize-handle,.bend-handle) { visibility:hidden; }
+.direct-editor #inline-text,.direct-editor.code-editor #inline-text,.direct-editor .code-editor-preview {
+  box-sizing:border-box; display:block; width:100%; margin:0; padding:0; border:0; border-radius:0;
+  min-height:0; max-height:none; outline:none; background:transparent; box-shadow:none;
+  line-height:1.5; letter-spacing:0; resize:none;
+}
+.direct-editor #inline-text:focus { outline:1px solid #7367ed55; outline-offset:3px; border-radius:1px; box-shadow:none; }
+.direct-editor .inline-format-toolbar { position:absolute; left:0; bottom:calc(100% + 10px); margin:0; background:#fff; border:1px solid #e5e7f0; border-radius:8px; box-shadow:0 3px 12px #17243b10; }
+.direct-editor .inline-editor-actions { position:absolute; right:0; bottom:calc(100% + 10px); padding:3px; border:1px solid #e5e7f0; border-radius:8px; background:#fff; box-shadow:0 3px 12px #17243b10; flex-wrap:nowrap; }
+.direct-editor .inline-editor-actions .button { width:28px; height:28px; padding:4px; display:grid; place-items:center; }
+.direct-editor.code-editor .inline-editor-actions { top:calc(100% + 8px); bottom:auto; }
+.direct-editor .inline-editor-actions .small { display:none; }
+.direct-editor .code-input-wrap { background:transparent; }
+.direct-editor .code-editor-toolbar { position:absolute; right:0; padding:0; background:none; height:30px; transform:translateY(2px); }
+.direct-editor .code-editor-toolbar > span { display:none; }
+.direct-editor .code-editor-toolbar #code-language { min-height:24px; height:26px; padding:2px 4px; width:130px; text-align:right; font:11px Arial,Helvetica,sans-serif; background:#1e293b; }
+.direct-editor .code-editor-preview { overflow:hidden; }
+@media print { #paper .editing-original > text { visibility:visible; } }

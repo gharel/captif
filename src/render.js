@@ -28,6 +28,7 @@ export function elementSvg(e, selected = false,editHints=false) {
     const themedChildren=e.children.map(child=>{
       const next={...child};
       if(child.role==='code-content')next._codeLanguage=e.codeLanguage||'plaintext';
+      if(child.role==='code-language')next._rightX=e.x+e.width-20;
       if(child.type==='text'&&!child.text.trim()&&['uml-name','uml-attributes','uml-operations','uml-condition'].includes(child.role)){
         const bounds=elementBounds(child);
         const following=e.children.filter(c=>c.type==='text'&&c.y>child.y).map(c=>elementBounds(c).y).sort((a,b)=>a-b)[0];
@@ -71,8 +72,8 @@ export function elementSvg(e, selected = false,editHints=false) {
     const bounds = elementBounds(e);
     const background = e.text.trim() && ['relation-name', 'cardinality-left', 'cardinality-right', 'uml-relation-name', 'uml-source-label', 'uml-target-label'].includes(e.role)
       ? `<rect class="relation-label-background" x="${bounds.x - 4}" y="${bounds.y - 2}" width="${bounds.width + 8}" height="${bounds.height + 4}" rx="3" fill="#ffffff" stroke="none" pointer-events="none"/>` : '';
-    const textX=e._centerX??e.x;
-    let text = e.text.trim()||placeholder ? `<text${placeholder?' class="diagram-placeholder"':''} x="${textX}" y="${e.y}"${e._centerX!==undefined?' text-anchor="middle"':''} font-size="${size}" fill="${placeholder?'#9ca3b6':color}" font-family="${e.role?'Arial, Helvetica, sans-serif':'ui-monospace, monospace'}"${e.bold ? ' font-weight="700"' : ''}${e.italic ? ' font-style="italic"' : ''}${e.underline ? ' text-decoration="underline"' : ''}>${lines.map((line, i) => `<tspan x="${textX}" dy="${i ? size * 1.5 : 0}">${escape(line) || ' '}</tspan>`).join('')}</text>` : '';
+    const textX=e._rightX??e._centerX??e.x;
+    let text = e.text.trim()||placeholder ? `<text${placeholder?' class="diagram-placeholder"':''} x="${textX}" y="${e.y}"${e._rightX!==undefined?' text-anchor="end"':e._centerX!==undefined?' text-anchor="middle"':''} font-size="${size}" fill="${placeholder?'#9ca3b6':color}" font-family="${e.role?'Arial, Helvetica, sans-serif':'ui-monospace, monospace'}"${e.bold ? ' font-weight="700"' : ''}${e.italic ? ' font-style="italic"' : ''}${e.underline ? ' text-decoration="underline"' : ''}>${lines.map((line, i) => `<tspan x="${textX}" dy="${i ? size * 1.5 : 0}">${escape(line) || ' '}</tspan>`).join('')}</text>` : '';
     if(e.role==='code-content')text=e.text?codeSvg(e,e._codeLanguage||'plaintext'):'';
     const hit=e._hitBounds||bounds;
     inner = `${background}<rect class="text-hit" x="${hit.x}" y="${hit.y}" width="${hit.width}" height="${hit.height}" fill="transparent" stroke="none"/>${text}`;

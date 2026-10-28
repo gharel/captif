@@ -5,6 +5,17 @@ import { highlightLines } from '../src/code-highlight.js';
 import { createDocument, validateDocument, createHistory, commit, undo, updateElement } from '../src/model.js';
 import { pageSvg } from '../src/render.js';
 
+test('le langage validé est ancré à droite de l’en-tête sans modifier la copie',()=>{
+  for(const language of ['sql','javascript','plaintext'])for(const width of [300,500]){
+    const block=updateCodeBlock({...createCodeBlock(),width},{language});
+    const before=JSON.stringify(block),x=block.x+width-20;
+    const svg=pageSvg({elements:[block]});
+    assert.ok(svg.includes(`x="${x}" y="${block.y+23}" text-anchor="end"`));
+    assert.ok(svg.includes(`>${CODE_LANGUAGES[language]}</tspan>`));
+    assert.equal(JSON.stringify(block),before);
+  }
+});
+
 test('un bloc de code est vide, groupé et propose les langages demandés',()=>{
   const block=createCodeBlock();assert.equal(codeText(block),'');assert.equal(block.type,'group');
   for(const lang of ['sql','javascript','css','html','php','java','markdown'])assert.ok(CODE_LANGUAGES[lang]);

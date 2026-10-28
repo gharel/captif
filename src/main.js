@@ -21,6 +21,8 @@ import { TEXT_STYLES, textFormatMarkup, toggleTextFormat, textStyleIcon, alignme
 import { isEntityBox, updateEntityBox } from './entity-box.js';
 import { isCodeBlock, createCodeBlock, updateCodeBlock, CODE_LANGUAGES } from './code-blocks.js';
 import { highlightHtml } from './code-highlight.js';
+import { directTextPlacement } from './direct-editing.js';
+import './direct-editing.css';
 
 const loaded = loadCopy();
 let history = createHistory(loaded.document || createDocument());
@@ -261,6 +263,8 @@ document.querySelector('#edit-bdd').onclick = () => {
 };
 
 function cancelTextEdit() {
+  document.querySelector('#paper-shell').classList.remove('text-editing');
+  document.querySelectorAll('#paper .editing-original').forEach(node=>node.classList.remove('editing-original'));
   document.querySelector('#inline-editor')?.remove();
   editingText = null;
 }
@@ -364,28 +368,27 @@ function beginTextEdit(elementId) {
   const scale = zoom / 100;
   const editor = document.createElement('div');
   editor.id = 'inline-editor'; editor.className = 'inline-editor';
-  const left = Math.max(8, displayed.x * scale - 8);
-  editor.style.left = `${left}px`;
-  editor.style.top = `${Math.max(8, bounds.y * scale - 8)}px`;
-  editor.style.width = `${Math.min(W * scale - left - 12, Math.max(240, bounds.width * scale + 24))}px`;
-  const actorLabel=parent?.umlKind==='actor'&&target.role==='uml-name';
-  if(actorLabel){const width=parseFloat(editor.style.width);editor.style.left=`${Math.max(8,Math.min(W*scale-width-8,(parent.x+parent.width/2)*scale-width/2))}px`;}
+  const placement=directTextPlacement(displayed,parent,scale);
+  Object.assign(editor.style,{left:`${placement.left}px`,top:`${placement.top}px`,width:`${placement.width}px`});
   const choices=diagramChoices(target,parent),single=Boolean(target.role)&&!['uml-attributes','uml-operations','box-body','code-content'].includes(target.role);
-  editor.style.top = `${Math.max(8,bounds.y * scale - (choices?8:48))}px`;
+  editor.classList.add('direct-editor');
   editor.classList.toggle('diagram-cell-editor',Boolean(target.role));
   editor.classList.toggle('code-editor',codeField);
   const control=choices?`<select id="inline-text">${choices.map(([value,label])=>`<option value="${esc(value)}">${esc(label)}</option>`).join('')}</select>`:single?'<input id="inline-text" type="text" maxlength="80" autocomplete="off" spellcheck="false" />':'<textarea id="inline-text" maxlength="10000" spellcheck="false"></textarea>';
-  editor.innerHTML = `${choices?'':textFormatMarkup(editingText.format)}<label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label>${control}<div class="inline-editor-actions"><span class="small">${single?'Entrée : valider · Tab : suivant':'Ctrl + Entrée pour valider'}</span><button id="cancel-inline" class="button secondary" type="button">Annuler</button><button id="save-inline" class="button primary" type="button">Enregistrer</button></div>`;
+  editor.innerHTML = `${choices?'':textFormatMarkup(editingText.format)}<label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label>${control}<div class="inline-editor-actions"><span class="small">${single?'Entrée : valider · Tab : suivant':'Ctrl + Entrée pour valider'}</span><button id="cancel-inline" class="button secondary" type="button" aria-label="Annuler la saisie" title="Annuler (Échap)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><button id="save-inline" class="button primary" type="button" aria-label="Valider la saisie" title="Valider (Ctrl + Entrée)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button></div>`;
   if(codeField){
-    editor.style.width=`${Math.min(W*scale-left-12,Math.max(440,bounds.width*scale+24))}px`;
-    editor.innerHTML=`<div class="code-editor-toolbar"><span aria-hidden="true">&lt;/&gt;</span><label class="sr-only" for="code-language">Coloration syntaxique</label><select id="code-language">${Object.entries(CODE_LANGUAGES).map(([value,label])=>`<option value="${value}">${label}</option>`).join('')}</select></div><label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label><div class="code-input-wrap"><pre class="code-editor-preview" aria-hidden="true"><code></code></pre><textarea id="inline-text" maxlength="10000" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="soft"></textarea></div><div class="inline-editor-actions"><span class="small">Ctrl + Entrée pour valider</span><button id="cancel-inline" class="button secondary" type="button">Annuler</button><button id="save-inline" class="button primary" type="button">Enregistrer</button></div>`;
+    editor.innerHTML=`<div class="code-editor-toolbar"><span aria-hidden="true">&lt;/&gt;</span><label class="sr-only" for="code-language">Coloration syntaxique</label><select id="code-language">${Object.entries(CODE_LANGUAGES).map(([value,label])=>`<option value="${value}">${label}</option>`).join('')}</select></div><label class="sr-only" for="inline-text">Modifier le texte sur la feuille</label><div class="code-input-wrap"><pre class="code-editor-preview" aria-hidden="true"><code></code></pre><textarea id="inline-text" maxlength="10000" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="soft"></textarea></div><div class="inline-editor-actions"><span class="small">Ctrl + Entrée pour valider</span><button id="cancel-inline" class="button secondary" type="button" aria-label="Annuler la saisie" title="Annuler (Échap)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><button id="save-inline" class="button primary" type="button" aria-label="Valider la saisie" title="Valider (Ctrl + Entrée)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button></div>`;
   }
   document.querySelector('#paper-shell').append(editor);
+  document.querySelector('#paper-shell').classList.add('text-editing');
+  if(codeField){const badge=parent.children.find(c=>c.role==='code-language');document.querySelectorAll('#paper [data-element]').forEach(node=>{if(node.dataset.element===badge?.id)node.classList.add('editing-original');});}
   const field = editor.querySelector('#inline-text');
-  if(actorLabel)field.style.textAlign='center';
+  field.style.textAlign=placement.align;
+  field.style.fontFamily=target.role&& !codeField?'Arial, Helvetica, sans-serif':'ui-monospace, monospace';
+  document.querySelectorAll('#paper [data-element]').forEach(node=>{if(node.dataset.element===target.id)node.classList.add('editing-original');});
   field.value = target.text;
   if(!choices)field.placeholder=diagramPlaceholder(target);
-  field.style.fontSize = `${Math.max(12,target.fontSize * scale)}px`;
+  field.style.fontSize = `${placement.fontSize}px`;
   field.style.fontWeight=target.bold?'700':'400';field.style.fontStyle=target.italic?'italic':'normal';
   field.style.textDecoration=target.underline?'underline':'none';
   const toggleFormat=style=>{
@@ -395,7 +398,10 @@ function beginTextEdit(elementId) {
   };
   editor.querySelectorAll('[data-text-format]').forEach(button=>button.onclick=()=>toggleFormat(button.dataset.textFormat));
   field.style.lineHeight = '1.5';
-  field.style.minHeight = single?'36px':`${Math.max(95, Math.min(450, bounds.height * scale + 24))}px`;
+  field.style.minHeight=`${placement.fontSize*1.5}px`;
+  field.style.height=`${placement.height}px`;
+  field.style.color=target.stroke||'#263246';
+  if(codeField)editor.querySelector('.code-editor-toolbar').style.top=`${(parent.y-displayed.y+target.fontSize)*scale}px`;
   if(codeField){
     const language=editor.querySelector('#code-language'),preview=editor.querySelector('.code-editor-preview');
     language.value=editingText.language;preview.style.fontSize=field.style.fontSize;
@@ -403,7 +409,7 @@ function beginTextEdit(elementId) {
     language.onchange=()=>{editingText.language=language.value;refresh();};
     field.addEventListener('input',refresh);field.addEventListener('scroll',()=>{preview.scrollTop=field.scrollTop;preview.scrollLeft=field.scrollLeft;});refresh();
   }
-  if(!single)field.addEventListener('input', () => { field.style.height = 'auto'; field.style.height = `${Math.min(450, Math.max(95, field.scrollHeight))}px`; });
+  if(!single)field.addEventListener('input', () => { field.style.height = 'auto'; field.style.height = `${Math.max(placement.height,field.scrollHeight)}px`; });
   field.addEventListener('keydown', event => {
     if(!choices&&!codeField&&(event.ctrlKey||event.metaKey)&&['b','i','u'].includes(event.key.toLowerCase())){event.preventDefault();event.stopPropagation();toggleFormat(({b:'bold',i:'italic',u:'underline'})[event.key.toLowerCase()]);return;}
     if(codeField&&event.key==='Tab'){event.preventDefault();event.stopPropagation();const start=field.selectionStart,end=field.selectionEnd;field.setRangeText('  ',start,end,'end');field.dispatchEvent(new Event('input'));return;}
