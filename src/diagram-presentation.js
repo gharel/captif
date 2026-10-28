@@ -1,16 +1,16 @@
 import { textLines } from './geometry.js';
 const INTERNAL_LABELS=new Set(['usecase','action','decision','component','artifact','database','deployment-node','data-object','identifying-relationship','process','subprocess','input-output','document','manual-input','preparation','weak-entity','send-signal','receive-signal']);
-// One exclusive hue per colored component; close stops keep the finish restrained.
+// Exclusive color transitions inspired by the supplied gradient reference.
 export const DIAGRAM_COLORS=Object.freeze(Object.fromEntries(Object.entries({
-  entity:['#317b78','#2c716f'],
-  association:['#35768d','#306c82'],
-  class:['#5564ae','#4d5ba2'],
-  'abstract-class':['#656397','#5c5a8c'],
-  interface:['#526f82','#4b6578'],
-  object:['#805f91','#755687'],
-  participant:['#416fb2','#3b65a6'],
-  usecase:['#a45c7b','#985370'],
-  fragment:['#627186','#59677c'],
+  entity:['#52dfbf','#23aa9b'],
+  association:['#52e6ef','#4caff7'],
+  class:['#b56af2','#f256b3'],
+  'abstract-class':['#ba85ff','#8e79ef'],
+  interface:['#58c76f','#e5f25d'],
+  object:['#ffd268','#ff68bd'],
+  participant:['#a7d5ff','#638bff'],
+  usecase:['#ffab37','#ff5638'],
+  fragment:['#ffda4f','#ff9b50'],
 }).map(([kind,stops])=>[kind,Object.freeze(stops)])));
 
 /** Display-only geometry shared by SVG and direct editing. Never changes the copy. */
@@ -41,6 +41,10 @@ export function diagramSurface(group,child){
   return null;
 }
 
-export function darkDiagramTitle(group,child){
+function coloredDiagramTitle(group,child){
   return ['box-title','entity-name','association-name'].includes(child.role)||group.umlKind==='fragment'&&child.role==='uml-stereotype'||['uml-name','uml-stereotype'].includes(child.role)&&['class','abstract-class','interface','object','participant','usecase'].includes(group.umlKind);
+}
+
+export function diagramTitleColor(group,child){
+  return coloredDiagramTitle(group,child)?'#172033':child.stroke||'#263246';
 }

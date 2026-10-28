@@ -22,7 +22,7 @@ import { isEntityBox, updateEntityBox } from './entity-box.js';
 import { isCodeBlock, createCodeBlock, updateCodeBlock, CODE_LANGUAGES } from './code-blocks.js';
 import { highlightHtml } from './code-highlight.js';
 import { directTextPlacement } from './direct-editing.js';
-import { darkDiagramTitle } from './diagram-presentation.js';
+import { diagramTitleColor } from './diagram-presentation.js';
 import './direct-editing.css';
 import './atelier.css';
 import { weakMemo, frameTask } from './performance.js';
@@ -503,7 +503,7 @@ function beginTextEdit(elementId,recovered=null) {
   field.style.lineHeight = '1.5';
   field.style.minHeight=`${placement.fontSize*1.5}px`;
   field.style.height=`${placement.height}px`;
-  field.style.color=parent&&darkDiagramTitle(parent,target)?'#ffffff':target.stroke||'#263246';
+  field.style.color=parent?diagramTitleColor(parent,target):target.stroke||'#263246';
   if(codeField)editor.querySelector('.code-editor-toolbar').style.top=`${(parent.y-displayed.y+target.fontSize)*scale}px`;
   if(codeField){
     const language=editor.querySelector('#code-language'),preview=editor.querySelector('.code-editor-preview');

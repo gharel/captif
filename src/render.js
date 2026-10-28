@@ -9,7 +9,7 @@ import { resolveConnectors,anchorsForElements,bendHandles } from './connectors.j
 import { diagramActions,isDiagram } from './diagram-inline.js';
 import { editableConnector,resolveDiagramConnections } from './diagram-connections.js';
 import { codeSvg } from './code-highlight.js';
-import { diagramTextPresentation,diagramSurface,darkDiagramTitle } from './diagram-presentation.js';
+import { diagramTextPresentation,diagramSurface,diagramTitleColor } from './diagram-presentation.js';
 export { W, H, textLines } from './geometry.js';
 export const escape = (v = '') => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -33,7 +33,7 @@ export function elementSvg(e, selected = false,editHints=false) {
     const themedChildren=e.children.map(child=>{
       const next={...diagramTextPresentation(child,e)};
       next._gradient=diagramSurface(e,child);
-      if(darkDiagramTitle(e,child))next.stroke='#ffffff';
+      next.stroke=diagramTitleColor(e,child);
       if(child.role==='code-content')next._codeLanguage=e.codeLanguage||'plaintext';
       if(child.role==='code-language')next._rightX=e.x+e.width-20;
       if(child.type==='text'&&!child.text.trim()&&['uml-name','uml-attributes','uml-operations','uml-condition'].includes(child.role)){
@@ -80,7 +80,7 @@ export function elementSvg(e, selected = false,editHints=false) {
     inner = `${background}<rect class="text-hit" x="${hit.x}" y="${hit.y}" width="${hit.width}" height="${hit.height}" fill="transparent" stroke="none"/>${text}`;
   }
   const pointerStyle = ['Relation BDD','Relation UML'].includes(e.label) ? ' style="pointer-events:none"' : ['relation-line','uml-relation-line'].includes(e.role) ? ' style="pointer-events:visiblePainted"' : '';
-  const gradient=e._gradient?`<defs><linearGradient id="${gradientId}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${e._gradient[0]}"/><stop offset="1" stop-color="${e._gradient[1]}"/></linearGradient></defs>`:'';
+  const gradient=e._gradient?`<defs><linearGradient id="${gradientId}" x1="0%" y1="35%" x2="100%" y2="65%"><stop stop-color="${e._gradient[0]}"/><stop offset="1" stop-color="${e._gradient[1]}"/></linearGradient></defs>`:'';
   return `<g data-element="${escape(e.id)}"${e.type === 'group' ? ` data-group="${escape(e.id)}" role="group" aria-label="${escape(e.label)}"` : ''} class="drawing-element${e.type === 'group' ? ' group-element' : ''}"${pointerStyle}>${gradient}${inner}${selected ? outline(e, 'selection-outline') : ''}</g>`;
 }
 
