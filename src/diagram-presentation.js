@@ -1,4 +1,5 @@
 import { textLines } from './geometry.js';
+import { gradientTextColor } from './gradient-contrast.js';
 const INTERNAL_LABELS=new Set(['usecase','action','decision','component','artifact','database','deployment-node','data-object','identifying-relationship','process','subprocess','input-output','document','manual-input','preparation','weak-entity','send-signal','receive-signal']);
 // Exclusive color transitions inspired by the supplied gradient reference.
 export const DIAGRAM_COLORS=Object.freeze(Object.fromEntries(Object.entries({
@@ -42,5 +43,9 @@ export function diagramSurface(group,child){
 }
 
 export function diagramTitleColor(group,child){
-  return child.type==='text'&&group.label!=='Bloc de code'?group.stroke||child.stroke||'#888c94':child.stroke||'#263246';
+  if(child.type!=='text'||group.label==='Bloc de code')return child.stroke||'#263246';
+  const color=group.stroke||child.stroke||'#888c94',text=diagramTextPresentation(child,group);
+  const x=text._centerX??text.x,y=text.y-(text.fontSize||18)*.35;
+  const surface=group.children.find(shape=>diagramSurface(group,shape)&&x>=shape.x&&x<=shape.x+shape.width&&y>=shape.y&&y<=shape.y+shape.height);
+  return surface?gradientTextColor(diagramSurface(group,surface),color):color;
 }

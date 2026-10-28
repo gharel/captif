@@ -40,7 +40,7 @@ test('les onglets de paquetage et fragment gardent leur zone propre et leur cont
   assert.equal(p.width,tab.width-24);
   const fragment=emptyUml('fragment'),stereo=fragment.children.find(c=>c.role==='uml-stereotype');
   assert.equal(diagramTextPresentation(stereo,fragment).x,stereo.x);
-  assert.equal(diagramTitleColor(fragment,stereo),fragment.stroke);
+  assert.equal(diagramTitleColor(fragment,stereo),'#000000');
   const name=fragment.children.find(c=>c.role==='uml-name');
   assert.equal(diagramTitleColor(fragment,name),fragment.stroke);
 });
@@ -59,19 +59,19 @@ test('chaque type coloré a son dégradé exclusif et conserve la direction dema
   assert.ok(rendered.every(Boolean));
   assert.equal(new Set(rendered.map(stops=>stops.join(':'))).size,groups.length);
   const group=emptyBdd('entity'),title=group.children.find(c=>c.role==='box-title');
-  assert.equal(diagramTitleColor(group,title),group.stroke);
+  assert.equal(diagramTitleColor(group,title),'#000000');
   assert.match(elementSvg(group),/x1="0%" y1="35%" x2="100%" y2="65%"/);
   assert.match(elementSvg(group),/<stop offset="50%"/);
 });
 
-test('titres et corps reprennent la couleur du trait du groupe sans réécrire la copie',()=>{
+test('le contraste des titres est corrigé et les corps gardent le trait sans réécrire la copie',()=>{
   for(const stroke of ['#888c94','#2563eb']){
     const group=emptyUml('class');group.stroke=stroke;
     for(const child of group.children.filter(c=>c.type==='text'))child.text='Texte';
     const before=JSON.stringify(group);
-    for(const child of group.children.filter(c=>c.type==='text'))assert.equal(diagramTitleColor(group,child),stroke);
+    for(const child of group.children.filter(c=>c.type==='text'))assert.equal(diagramTitleColor(group,child),child.role==='uml-name'?'#000000':stroke);
     const html=elementSvg(group),texts=[...html.matchAll(/<text\b[^>]*fill="([^"]+)"/g)];
-    assert.ok(texts.length>=3);assert.ok(texts.every(match=>match[1]===stroke));
+    assert.ok(texts.length>=3);assert.equal(texts[0][1],'#000000');assert.ok(texts.slice(1).every(match=>match[1]===stroke));
     assert.equal(JSON.stringify(group),before);
   }
 });

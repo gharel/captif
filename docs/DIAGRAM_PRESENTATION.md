@@ -1,5 +1,9 @@
 # Présentation des textes et en-têtes
 
+Contraste sur dégradés : conserver la couleur du trait si son contraste minimal atteint 4,5:1 sur l’ensemble du dégradé. Sinon choisir noir ou blanc selon le meilleur contraste minimal. Appliquer exactement le même calcul à la saisie directe et au rendu SVG partagé écran/impression. Préserver la couleur du trait pour les textes sur fond blanc et la coloration du code. Tester toutes les palettes, les deux replis noir/blanc et la non-mutation avant implémentation.
+
+Validation contraste : 216 tests réussis, incluant les neuf palettes à 1 001 positions par segment, les replis noir/blanc, la conservation d’une couleur déjà suffisante et la non-mutation. Recette navigateur sur origine fictive : texte noir dans le champ et le SVG pour un titre auparavant gris, aperçu des six types principaux. Capture `screenshots/gradient-text-contrast.png`. Résultats mémorisés par palette avec cache borné par couleur choisie ; pas de nouvelle impression PDF native.
+
 Texte et tracé : sur demande utilisateur, les textes de diagramme reprennent désormais la couleur du trait de leur groupe, titres et corps compris, dans le rendu et la saisie directe. Conserver la coloration syntaxique des blocs de code. Tester le gris par défaut et une couleur personnalisée, sans modifier la copie sauvegardée. Cette demande remplace les titres anthracite et couleurs dédiées aux attributs.
 
 Validation texte/tracé : 213 tests réussis. Recette navigateur sur la copie fictive à `localhost:5174` : contour, titre SVG et champ d’édition utilisent tous `#888c94`. Capture `screenshots/text-matches-stroke.png`. Le contraste du texte sur les en-têtes colorés dépend désormais du trait choisi ; la précédente validation de contraste du texte anthracite ne s’applique plus. Pas de nouvelle impression PDF native.
