@@ -10,6 +10,7 @@ L’application fonctionne dans le navigateur sans compte, serveur, transfert de
 
 ## Parcours
 
+0. Facultatif : l'enseignant dépose le sujet PDF sur le poste depuis l'espace enseignant protégé par mot de passe (voir TEACHER_SUBJECT.md). Le sujet s'affiche au démarrage de l'évaluation.
 1. Saisir le nom de l’étudiant et le titre de l’évaluation.
 2. Lire la consigne de rester dans la fenêtre et en plein écran, avec annonce d'un retrait de points en cas de sortie. Accepter les consignes puis activer le plein écran au clic sur Commencer. Le suivi démarre après activation réussie ; un refus laisse la session en préparation. Les limites techniques sont documentées hors du dialogue de démarrage.
 3. Écrire ou dessiner, ajouter des feuilles, naviguer entre elles et corriger le travail.
@@ -88,4 +89,4 @@ Contrat des modules testés : modèle immuable exposant `createDocument`, `addPa
 
 ## Hors périmètre
 
-Authentification, serveur d’examen, surveillance de l’écran, caméra, verrouillage du poste, détection d’applications tierces, notation automatique, collaboration en temps réel et journal infalsifiable. Pour une évaluation exigeant une restriction effective du poste, une infrastructure administrée distincte reste nécessaire.
+Authentification réelle (l'espace enseignant n'est qu'une porte dissuasive), diffusion centralisée du sujet, serveur d’examen, surveillance de l’écran, caméra, verrouillage du poste, détection d’applications tierces, notation automatique, collaboration en temps réel et journal infalsifiable. Pour une évaluation exigeant une restriction effective du poste, une infrastructure administrée distincte reste nécessaire.

@@ -1,7 +1,15 @@
 import { defineConfig } from 'vite';
+import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/captif/' : '/',
+const page = name => fileURLToPath(new URL(name, import.meta.url));
+
+export default defineConfig(({ command, isPreview }) => ({
+  base: command === 'build' || isPreview ? '/captif/' : '/',
   plugins: [tailwindcss()],
+  build: {
+    rollupOptions: {
+      input: { main: page('./index.html'), enseignant: page('./enseignant.html') },
+    },
+  },
 }));

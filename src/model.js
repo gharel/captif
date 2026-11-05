@@ -130,6 +130,12 @@ export function validateDocument(value) {
     exam: string(value.exam, 300),
     pages: [],
   };
+  if (value.subject !== undefined) {
+    const subject = value.subject;
+    if (!object(subject)) fail();
+    result.subject = { name: string(subject.name, 200), sha256: string(subject.sha256, 64), pages: number(subject.pages, 1, 500) };
+    if (!result.subject.name || !/^[0-9a-f]{64}$/.test(result.subject.sha256) || !Number.isInteger(result.subject.pages)) fail();
+  }
   let pageElementCount = 0;
   function cleanElement(element, child = false) {
       if (!object(element) || !TYPES.has(element.type) || (child && element.type === 'group') || ++pageElementCount > 2_000) fail();

@@ -19,6 +19,7 @@ Les demandes explicites de l'utilisateur priment sur ce document. Lire les spéc
 - `src/drafts.js` : brouillon local séparé, validation et reprise de la saisie non validée.
 - `src/performance.js`, `svg-patch.js` : caches bornés/faibles, cadence de rendu et conservation des groupes SVG inchangés.
 - `src/page-index.js`, `document-data.js`, `workspace-preferences.js` : indexation faible, normalisation sans copies inutiles et préférences visuelles indépendantes de la copie.
+- `src/teacher-access.js`, `subject.js`, `subject-viewer.js`, `teacher.js` : porte d'accès enseignant (empreinte PBKDF2, blocage plafonné à 1 h), sujet PDF unique en IndexedDB, rendu pdf.js chargé à la demande et page `enseignant.html`. Voir `docs/TEACHER_SUBJECT.md`.
 - `src/floating-placement.js` : placement des commandes dans l'atelier et évitement des boîtes voisines. Les ancres de connecteurs sont indexées par collections immuables dans `connectors.js`.
 - `tests/*.test.js` : tests Node natifs ; `docs/` : spécifications et recettes visuelles.
 
@@ -37,6 +38,7 @@ Préférer des fonctions pures et des changements ciblés. Ne pas ajouter de dé
 - Les formes et leurs textes restent groupés. Les connecteurs suivent leurs extrémités ; leurs coudes manuels survivent à la sauvegarde.
 - Redimensionner un texte libre change sa zone et ses retours à la ligne, pas sa police. MAJ contraint les proportions ; ALT permet la duplication ou la création depuis le centre selon le geste.
 - Conserver les choix de tracé entre outils ; épaisseur initiale de 1 px et contours gris `#888c94` (contraste ≥ 3:1 sur le papier blanc). Les textes de diagramme reprennent le trait, avec repli noir/blanc sur dégradé si nécessaire pour atteindre 4,5:1. Conserver la coloration syntaxique du code. Voir `docs/DEFAULT_STROKE.md` et `docs/DIAGRAM_PRESENTATION.md`.
+- Le sujet PDF de l'enseignant est unique, sans historique, illisible avant le démarrage et non modifiable depuis la copie. La copie n'en garde qu'une référence (nom, SHA-256, pages). Le mot de passe enseignant n'apparaît jamais en clair : seule son empreinte est dans `teacher-access.js` (`npm run mot-de-passe`).
 - L'impression conserve le contenu et le bilan d'absences, sans commandes d'édition ni placeholders. Utiliser le même rendu SVG que l'écran.
 - Le suivi enregistre des observations de focus, visibilité et plein écran. Ne pas inventer une cause précise, un contenu consulté ou une preuve de fraude. Les événements simultanés ne doublent pas les absences.
 - Aucune donnée personnelle, ressource distante ou télémétrie ne doit être ajoutée sans demande explicite. Échapper tout contenu utilisateur dans le SVG/HTML ; maintenir les listes de valeurs autorisées du validateur.

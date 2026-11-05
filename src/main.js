@@ -34,6 +34,9 @@ import { normalizeCopy } from './document-data.js';
 import { placeFloating, floatingBoxes } from './floating-placement.js';
 import { DEFAULT_FAMILY } from './palette-groups.js';
 import './neumorphism.css';
+import './subject.css';
+import { createSubjectStore, subjectReference, SUBJECT_CHANNEL } from './subject.js';
+import { createSubjectViewer } from './subject-viewer.js';
 import { readPreferences,writePreferences,toolShortcut,TOOL_KEYS } from './workspace-preferences.js';
 
 const loaded = loadCopy();
@@ -62,6 +65,7 @@ let lastPointerClick = null;
 let recoveryBlocked = Boolean(loaded.error);
 let ownsWorkspace = !navigator.locks;
 let notes = loaded.notes || [];
+let subjectState = {}, subjectLoaded = false;
 let monitor;
 let startingSession = false;
 let bddEditing = null;
@@ -132,13 +136,14 @@ app.innerHTML = `
     <aside class="left-sidebar">
       <div class="sidebar-heading"><span>VOTRE COPIE</span><span class="tag">A4</span></div>
       <label class="field-label" for="student-name">Nom de l'étudiant</label><input id="student-name" placeholder="Prénom et nom" maxlength="150" />
-      <label class="field-label" for="exam-title">Évaluation</label><input id="exam-title" placeholder="Ex. Bases de données · UML" maxlength="200" />
+      <label class="field-label" for="exam-title">Évaluation</label><input id="exam-title" placeholder="Ex. Bases de données · UML" maxlength="200" /><p id="subject-notice" class="subject-notice" role="status" hidden></p>
       <div class="sidebar-heading pages-heading"><span>FEUILLES</span><span id="page-count"></span></div>
       <nav id="pages" aria-label="Feuilles de la copie"></nav>
       <button id="add-page" class="add-page">＋ Ajouter une feuille</button>
       <button id="remove-page" class="text-button danger">Supprimer cette feuille</button>
       <div class="sidebar-bottom"><div id="save-state" role="status">● Sauvegarde sur cet appareil</div><div class="flex gap-3 mt-3"><button id="export" class="text-button">Exporter .json</button><button id="import" class="text-button">Importer</button></div><button id="new-copy" class="text-button mt-3">Nouvelle copie</button><button id="settings-button" class="settings-button" type="button" aria-expanded="false" aria-controls="settings-popover">${icon('settings')} Paramètres</button></div>
     </aside>
+    <aside id="subject-panel" class="subject-panel" aria-labelledby="subject-panel-title"><div class="subject-panel-heading"><div><span class="eyebrow">SUJET</span><h2 id="subject-panel-title">Sujet</h2></div><div class="subject-zoom"><button id="subject-zoom-out" class="tool" type="button" aria-label="Réduire le sujet">−</button><output id="subject-zoom-level">100 %</output><button id="subject-zoom-in" class="tool" type="button" aria-label="Agrandir le sujet">＋</button><button id="subject-close" class="tool" type="button" aria-label="Masquer le sujet">${icon('close')}</button></div></div><div id="subject-scroll" class="subject-scroll" tabindex="0" aria-label="Pages du sujet"></div></aside>
     <main class="desk">
       <h1 class="sr-only">Votre atelier</h1>
       <div class="desk-controls">
@@ -148,7 +153,7 @@ app.innerHTML = `
       </div>
       ${strokeMarkup()}
       </div>
-      <div class="canvas-breadcrumb"><button id="toggle-pages" class="sidebar-toggle" aria-label="Réduire la colonne des feuilles" title="Afficher ou réduire les feuilles" aria-expanded="true">${icon('pages')}</button><span id="canvas-location">Feuille 01</span><span id="selection-summary" class="selection-summary" role="status" hidden></span><div class="group-context" id="group-context" hidden><span id="group-name"></span><button id="exit-group" class="text-button">Quitter le groupe <kbd class="shortcut-key">Échap</kbd></button></div><button id="toggle-library" class="sidebar-toggle" aria-label="Réduire la bibliothèque" title="Afficher ou réduire la bibliothèque" aria-expanded="true">${icon('layout')}</button></div>
+      <div class="canvas-breadcrumb"><button id="toggle-pages" class="sidebar-toggle" aria-label="Réduire la colonne des feuilles" title="Afficher ou réduire les feuilles" aria-expanded="true">${icon('pages')}</button><button id="toggle-subject" class="button subtle subject-toggle" type="button" aria-expanded="false" aria-controls="subject-panel" title="Afficher ou masquer le sujet" hidden>${icon('pages')} Sujet</button><span id="canvas-location">Feuille 01</span><span id="selection-summary" class="selection-summary" role="status" hidden></span><div class="group-context" id="group-context" hidden><span id="group-name"></span><button id="exit-group" class="text-button">Quitter le groupe <kbd class="shortcut-key">Échap</kbd></button></div><button id="toggle-library" class="sidebar-toggle" aria-label="Réduire la bibliothèque" title="Afficher ou réduire la bibliothèque" aria-expanded="true">${icon('layout')}</button></div>
       <div class="paper-scroll"><div id="paper-shell"><div class="paper-header"><span id="paper-identity">Votre nom · Votre évaluation</span><span id="paper-number">01</span></div><div id="paper"></div><div class="paper-footer"><span>CAPTIF / COPIE D'ÉVALUATION</span><span id="paper-pagination"></span></div></div></div>
       <div class="desk-footer"><span id="tool-hint">MAJ + clic : sélectionner · ALT + glisser : dupliquer</span><div class="zoom-control"><button id="zoom-fit" title="Adapter la feuille à l'espace disponible">Ajuster</button><button id="zoom-out" aria-label="Réduire le zoom">−</button><button id="zoom-label" type="button" title="Revenir à 100 %" aria-label="Revenir au zoom 100 %">85 %</button><button id="zoom-in" aria-label="Augmenter le zoom">＋</button></div></div>
     </main>
@@ -162,7 +167,7 @@ app.innerHTML = `
   <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
   <dialog id="session-dialog" aria-labelledby="exam-rules-title"><form method="dialog"><span class="eyebrow">CONSIGNES D'ÉVALUATION</span><h2 id="exam-rules-title">Restez dans cette fenêtre et en plein écran.</h2><div class="exam-rules-warning"><strong>Quitter cette fenêtre ou le plein écran vous expose à une sanction : retrait de points.</strong><p>Ne changez pas d'onglet, ne réduisez pas la fenêtre et n'ouvrez pas d'autre application. Les sorties et leur durée sont enregistrées dans le journal de session.</p></div><p>L'évaluation démarrera en plein écran. Restez dans cet espace jusqu'à la fin de votre travail, puis cliquez sur « Terminer la session » pour préparer votre rendu.</p><label class="consent"><input type="checkbox" id="acknowledge" required /> J'ai compris les consignes et les sanctions encourues.</label><p id="fullscreen-error" class="fullscreen-error" role="alert" hidden></p><div class="dialog-actions"><button class="button secondary" value="cancel" formnovalidate>Retour</button><button class="button primary" value="start">Commencer en plein écran</button></div></form></dialog>
   <dialog id="journal-dialog" aria-labelledby="journal-title"><div class="flex items-center justify-between"><div><span class="eyebrow">SUIVI DE L'ÉVALUATION</span><h2 id="journal-title">Journal de session</h2></div><button id="close-journal" class="tool" aria-label="Fermer le journal">${icon('close')}</button></div><div id="journal-status" class="journal-status"><span id="journal-status-indicator" class="status-dot" aria-hidden="true"></span><span id="journal-status-text">Aucune absence observée</span></div><div class="journal-metrics"><div><strong id="absence-count">0</strong><span>Absences observées</span></div><div><strong id="away-time">00:00:00</strong><span>Durée hors de l'outil</span></div><div><strong id="fullscreen-count">0</strong><span>Sorties du plein écran</span></div></div><button id="fullscreen" class="button secondary">⛶ Passer en plein écran</button><div id="journal-content"></div></dialog>
-  <section id="settings-popover" popover aria-labelledby="settings-title"><div class="settings-heading"><h2 id="settings-title">Paramètres</h2><button id="settings-close" class="tool" type="button" aria-label="Fermer les paramètres">${icon('close')}</button></div><label class="settings-grid-option" for="grid"><span><strong>Points de repère</strong><small>Afficher la grille sur la feuille</small></span><input id="grid" type="checkbox" checked /></label></section>
+  <section id="settings-popover" popover aria-labelledby="settings-title"><div class="settings-heading"><h2 id="settings-title">Paramètres</h2><button id="settings-close" class="tool" type="button" aria-label="Fermer les paramètres">${icon('close')}</button></div><label class="settings-grid-option" for="grid"><span><strong>Points de repère</strong><small>Afficher la grille sur la feuille</small></span><input id="grid" type="checkbox" checked /></label><a id="teacher-link" class="settings-link" href="enseignant.html"><span><strong>Espace enseignant</strong><small>Déposer le sujet PDF sur ce poste</small></span><span aria-hidden="true">→</span></a></section>
   <dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><h2 id="confirm-title">Confirmer cette action</h2><p id="confirm-message"></p><div class="dialog-actions"><button class="button secondary" value="cancel" autofocus>Annuler</button><button class="button primary" value="confirm">Confirmer</button></div></form></dialog>
   <input type="file" id="file-input" accept="application/json,.json" hidden />
   <div id="text-context" class="text-context" role="toolbar" aria-label="Options du texte sélectionné" hidden><button id="context-edit" type="button" title="Modifier le texte">${icon('pen')} Modifier</button><span class="context-divider"></span><label><span class="sr-only">Taille du texte sélectionné</span><select id="context-size">${[12,14,16,18,20,24,28,32].map(size => `<option value="${size}">${size} px</option>`).join('')}</select></label><button id="context-bold" type="button" aria-label="Gras" aria-pressed="false" title="Gras">${textStyleIcon('bold')}</button><button id="context-italic" type="button" aria-label="Italique" aria-pressed="false" title="Italique">${textStyleIcon('italic')}</button><button id="context-underline" type="button" aria-label="Souligné" aria-pressed="false" title="Souligné">${textStyleIcon('underline')}</button><label class="context-color"><span class="sr-only">Couleur du texte sélectionné</span><input id="context-color" type="color" value="${color}" /></label><button id="context-delete" type="button" aria-label="Supprimer ce texte" title="Supprimer ce texte">${icon('trash')}</button></div>
@@ -675,6 +680,7 @@ function updateStats() {
   for (const selector of ['#add-page', '#entity', '#association', '#relation', '#code-block','#stroke-trigger']) document.querySelector(selector).disabled = locked();
   document.querySelector('#auto-layout').disabled=locked()||!page().elements.some(isLayoutBox);
   umlUi?.syncLocked();
+  syncSubject();
   if (locked()) {document.querySelector('#text-context').hidden = true;strokeUi?.close();}
   updateHistory();
 }
@@ -707,7 +713,7 @@ document.querySelector('#exam-title').oninput = e => { history = { ...history, p
 document.querySelector('#pages').onclick = e => { const button = e.target.closest('[data-page]'); if (button) { activePage = button.dataset.page; selected = null; editingGroup = null; renderPages(); renderPaper(); updateHistory(); document.querySelector('.paper-scroll').scrollTo(0,0); } };
 document.querySelector('#add-page').onclick = () => { const next = addPage(doc()); activePage = next.pages.at(-1).id; selected = null; editingGroup = null; change(next); document.querySelector('.paper-scroll').scrollTo(0,0); };
 document.querySelector('#remove-page').onclick = async () => { if (page().elements.length && !await confirmAction('Supprimer cette feuille et son contenu ?')) return; selected = null; change(removePage(doc(), activePage)); };
-function travel(fn) { if (locked()) return; const { student, exam } = doc(); history = fn(history); history = { ...history, present: { ...doc(), student, exam } }; selected = null; if (!group()) editingGroup = null; persist(); renderPaper(); renderPages(); updateHistory(); }
+function travel(fn) { if (locked()) return; const { student, exam, subject } = doc(); history = fn(history); history = { ...history, present: withSubject({ ...doc(), student, exam }, subject) }; selected = null; if (!group()) editingGroup = null; persist(); renderPaper(); renderPages(); updateHistory(); }
 document.querySelector('#undo').onclick = () => travel(undo);
 document.querySelector('#redo').onclick = () => travel(redo);
 function deleteSelected() { if (selected&&!locked()) { let next=doc();for(const elementId of selectionIds())next=removeElement(next,activePage,elementId);setSelection([]);change(next); } }
@@ -1111,6 +1117,7 @@ document.querySelector('#session-dialog form').addEventListener('submit', async 
     if (!document.fullscreenElement) throw new Error('denied');
     document.querySelector('#session-dialog').close('start');
     monitor.start();
+    recordSubject(); setSubjectOpen(true);
     monitor.signal('fullscreen', true);
     monitor.signal('visibility', !document.hidden);
     monitor.signal('focus', document.hasFocus());
@@ -1163,6 +1170,45 @@ document.querySelector('#new-copy').onclick = async () => {
   for (const selector of ['#student-name', '#exam-title']) document.querySelector(selector).value = '';
   persist(); renderPaper(); renderPages(); updateStats(); toast('Nouvelle copie prête.');
 };
+
+// Sujet déposé par l'enseignant : lisible à partir du démarrage, jamais modifiable ici.
+const subjectStore=createSubjectStore();
+const subjectViewer=createSubjectViewer(document.querySelector('#subject-scroll'),{onError:message=>toast(message,true),onZoom:level=>{document.querySelector('#subject-zoom-level').textContent=`${Math.round(level*100)} %`;}});
+function withSubject(copy,subject){const {subject:_previous,...rest}=copy;return subject?{...rest,subject}:rest;}
+function recordSubject(){history={...history,present:withSubject(doc(),subjectState.subject&&subjectReference(subjectState.subject))};persist();}
+const subjectVisible=()=>Boolean(subjectState.subject)&&monitor.snapshot().status!=='idle';
+function setSubjectOpen(open){
+  open=open&&subjectVisible();
+  document.querySelector('.workspace').classList.toggle('subject-open',open);
+  document.querySelector('#toggle-subject').setAttribute('aria-expanded',String(open));
+  if(open){document.querySelector('#subject-panel-title').textContent=subjectState.subject.name;subjectViewer.show(subjectState.subject);}
+}
+function syncSubject(){
+  const {subject,error}=subjectState,status=monitor.snapshot().status,notice=document.querySelector('#subject-notice');
+  notice.hidden=status!=='idle'||!(subject||error);
+  notice.classList.toggle('is-error',Boolean(error)&&!subject);
+  const markup=subject?`<strong>Sujet déposé :</strong> ${esc(subject.name)} · ${subject.pages} page${subject.pages>1?'s':''}. Il s'affichera au démarrage de l'évaluation.`:error?'Le sujet déposé sur ce poste est illisible. Prévenez votre enseignant.':'';
+  if(notice.innerHTML!==markup)notice.innerHTML=markup;
+  document.querySelector('#toggle-subject').hidden=!subjectVisible();
+  document.querySelector('#teacher-link').hidden=status==='active';
+  if(!subjectVisible()&&document.querySelector('.workspace').classList.contains('subject-open')){setSubjectOpen(false);subjectViewer.clear();}
+}
+async function refreshSubject(){
+  const previous=subjectState.subject?.sha256;
+  subjectState=await subjectStore.read();
+  if(subjectLoaded&&monitor.snapshot().status==='active'&&subjectState.subject?.sha256!==previous){
+    notes.push(`Sujet ${subjectState.subject?'remplacé':'retiré'} par l'enseignant pendant la session le ${time(Date.now())}.`);recordSubject();
+  }
+  const reopen=!subjectLoaded&&monitor.snapshot().status==='active';
+  subjectLoaded=true;syncSubject();
+  if(reopen||document.querySelector('.workspace').classList.contains('subject-open'))setSubjectOpen(true);
+}
+document.querySelector('#toggle-subject').onclick=()=>setSubjectOpen(!document.querySelector('.workspace').classList.contains('subject-open'));
+document.querySelector('#subject-close').onclick=()=>{setSubjectOpen(false);document.querySelector('#toggle-subject').focus();};
+document.querySelector('#subject-zoom-out').onclick=()=>subjectViewer.zoom(-1);
+document.querySelector('#subject-zoom-in').onclick=()=>subjectViewer.zoom(1);
+try{new BroadcastChannel(SUBJECT_CHANNEL).onmessage=()=>refreshSubject();}catch{/* Le sujet sera relu au prochain chargement. */}
+refreshSubject();
 
 renderPaper(); renderPages(); updateStats();
 if (loaded.error) { document.querySelector('#save-state').textContent = '⚠ Sauvegarde d’origine conservée - exportez cette copie'; toast(loaded.error, true); }

@@ -33,6 +33,14 @@ npm run preview
 
 Le dossier `dist/` contient la version statique à héberger. Le développement et la compilation invoquent explicitement le point d'entrée Node de Vite pour rester compatibles avec les wrappers Node de ServBay sous Windows. Le runner de tests désactive l'isolation par processus pour fonctionner dans les environnements qui restreignent la création de processus.
 
+## Déposer le sujet (enseignant)
+
+**Paramètres › Espace enseignant** ouvre `enseignant.html`, protégée par mot de passe. L'enseignant y dépose un PDF de 20 Mo au plus qui sert de consignes. Un seul sujet est conservé : un nouveau dépôt remplace l'ancien, sans historique. Le sujet reste dans le navigateur du poste : il faut le déposer sur chaque poste.
+
+L'étudiant voit seulement le nom du sujet en préparation. Le sujet s'ouvre dans un panneau à côté de la feuille au démarrage de l'évaluation et reste consultable après la fin. L'étudiant ne peut ni le remplacer ni le retirer. Le bilan imprimé indique le nom, le nombre de pages et le début de l'empreinte SHA-256 du sujet.
+
+Le déverrouillage n'est jamais retenu : recharger la page ou **Verrouiller** redemande le mot de passe. Chaque mot de passe incorrect bloque la saisie 1 minute, puis 5 minutes, 15 minutes et 1 heure au plus. Pour changer de mot de passe : `npm run mot-de-passe`, puis recopier le sel et l'empreinte affichés dans `src/teacher-access.js`. C'est une protection dissuasive : le site reste statique et public. Voir [docs/TEACHER_SUBJECT.md](docs/TEACHER_SUBJECT.md).
+
 ## Utiliser la copie
 
 1. Renseigner le nom et le titre de l'évaluation.
