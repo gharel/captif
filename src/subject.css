@@ -21,9 +21,10 @@
   .subject-notice { margin:10px 0 0; padding:9px 10px; color:#c1c9d3; font-size:11px; line-height:1.45; background:#24282c; border:1px solid #3d444c; border-radius:10px; box-shadow:var(--neo-inset); overflow-wrap:anywhere; }
   .subject-notice strong { color:#edf0f4; font-weight:650; }
   .subject-notice.is-error { color:#ffb4a8; }
-  .settings-link { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; padding-top:12px; color:inherit; font-size:12px; text-decoration:none; border-top:1px solid var(--border); }
-  .settings-link small { display:block; color:var(--muted); font-size:11px; }
-  .settings-link:hover strong { color:#ffbd94; }
+  .teacher-entry { display:flex; align-items:center; justify-content:center; gap:8px; min-height:32px; margin-top:8px; padding:5px 10px; color:#ffc29c; font-size:12px; font-weight:600; text-decoration:none; background:#2c3035; border:1px dashed #8e6a52; border-radius:12px; box-shadow:var(--neo-raised); }
+  .teacher-entry[hidden] { display:none; }
+  .teacher-entry svg { flex:none; width:16px; height:16px; }
+  .teacher-entry:hover { color:#ffd3b5; background:#30353b; border-color:#c58058; }
   .canvas-breadcrumb .subject-toggle { min-height:26px; padding:0 10px; gap:6px; font-size:11px; border:1px solid #424a54; border-radius:8px; }
   .canvas-breadcrumb .subject-toggle svg { width:14px; height:14px; }
   .canvas-breadcrumb .subject-toggle[hidden] { display:none; }

@@ -35,7 +35,7 @@ Le dossier `dist/` contient la version statique à héberger. Le développement 
 
 ## Déposer le sujet (enseignant)
 
-**Paramètres › Espace enseignant** ouvre `enseignant.html`, protégée par mot de passe. L'enseignant y dépose un PDF de 20 Mo au plus qui sert de consignes. Un seul sujet est conservé : un nouveau dépôt remplace l'ancien, sans historique. Le sujet reste dans le navigateur du poste : il faut le déposer sur chaque poste.
+Le bouton **Ajouter les consignes**, sous le titre de l'évaluation, ouvre `enseignant.html`, protégée par mot de passe. L'enseignant y dépose un PDF de 20 Mo au plus qui sert de consignes. Un seul sujet est conservé : un nouveau dépôt remplace l'ancien, sans historique. Le sujet reste dans le navigateur du poste : il faut le déposer sur chaque poste.
 
 L'étudiant voit seulement le nom du sujet en préparation. Le sujet s'ouvre dans un panneau à côté de la feuille au démarrage de l'évaluation et reste consultable après la fin. L'étudiant ne peut ni le remplacer ni le retirer. Le bilan imprimé indique le nom, le nombre de pages et le début de l'empreinte SHA-256 du sujet.
 

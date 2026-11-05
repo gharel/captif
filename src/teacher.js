@@ -1,6 +1,4 @@
-import './style.css';
-import './neumorphism.css';
-import './subject.css';
+import './teacher-page.css';
 import { requireTeacherAccess } from './teacher-access.js';
 import { createSubjectStore, prepareSubject, announceSubjectChange, MAX_SUBJECT_BYTES } from './subject.js';
 import { countPdfPages, createSubjectViewer } from './subject-viewer.js';

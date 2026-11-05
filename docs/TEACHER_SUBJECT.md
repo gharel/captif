@@ -8,7 +8,7 @@ L'enseignant fournit les consignes de l'évaluation sous forme d'un PDF, lisible
 
 ## Parcours
 
-1. Paramètres › « Espace enseignant » ouvre `enseignant.html`. Le lien est masqué pendant une session active.
+1. Le bouton « Ajouter les consignes » (« Remplacer les consignes » si un sujet existe), sous le titre de l'évaluation, ouvre `enseignant.html`. Il est masqué pendant une session active.
 2. Un écran « Accès réservé » demande le mot de passe. Le reste de la page est `inert`. Le déverrouillage reste **en mémoire seulement** : un rechargement ou « Verrouiller » redemande le mot de passe. Rien n'est retenu sur le poste de l'étudiant.
 3. La page enseignant présente le sujet actuel (nom, pages, taille, date de dépôt, début d'empreinte), « Déposer un sujet PDF », « Retirer le sujet » et un aperçu. Remplacer ou retirer un sujet existant demande une confirmation.
 4. En préparation, l'étudiant voit seulement « Sujet déposé : nom.pdf · N pages. Il s'affichera au démarrage de l'évaluation. » Le contenu n'est pas lisible avant le démarrage.
@@ -38,6 +38,7 @@ La page enseignant est une porte dissuasive, pas une authentification : le site 
 - Cliquer, faire défiler ou zoomer dans le sujet ne crée aucune absence.
 - Le JSON exporté et le bilan imprimé contiennent la référence au sujet, jamais le PDF. Une copie sans référence reste importable.
 - Aucun appel réseau ajouté.
+- Le thème sombre de la copie est inchangé : la page enseignant a sa propre feuille (`teacher-page.css`) et ne partage aucun module CSS avec la copie, sinon Vite charge le bloc commun avant `atelier.css`.
 
 ## Vérification
 

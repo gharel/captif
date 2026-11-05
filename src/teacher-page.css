@@ -1,0 +1,5 @@
+/* Feuille propre à l'espace enseignant : les @import sont inlinés ici, pour ne pas partager
+   de module CSS avec la copie (Vite chargerait sinon le bloc commun avant atelier.css). */
+@import './style.css';
+@import './neumorphism.css';
+@import './subject.css';
