@@ -887,6 +887,8 @@ function fitPaper() {
 document.querySelector('#zoom-label').onclick = () => {fitZoom=false;zoom=100;renderPaper();};
 document.querySelector('#zoom-fit').onclick = () => { fitZoom = true; fitPaper(); };
 new ResizeObserver(()=>{fitPaper();floatingFrame.schedule();}).observe(document.querySelector('.paper-scroll'));
+// Feuille rétrécie par le panneau du sujet : la barre d'outils passe sur deux lignes au lieu de déborder.
+new ResizeObserver(([entry])=>document.querySelector('.desk').classList.toggle('desk-compact',entry.contentRect.width<680)).observe(document.querySelector('.desk'));
 
 let pointerBounds=null;
 window.addEventListener('scroll',()=>{pointerBounds=null;},true);

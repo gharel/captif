@@ -8,11 +8,19 @@
   #app .subject-open .subject-panel { display:flex; }
   #app .desk { grid-column:3; }
   #app .right-sidebar { grid-column:4; }
+  #app .desk-compact .toolbar { flex-wrap:wrap; }
+  #app .desk-compact .tool-group { flex-wrap:wrap; justify-content:center; }
+  #app .desk-compact .toolbar-divider { display:none; }
   .subject-panel { position:relative; flex-direction:column; min-width:0; min-height:0; margin:14px 0 14px 8px; padding:14px 10px 10px; gap:10px; color:#e6ebf1; background:linear-gradient(145deg,#30353a,#272c31); border:1px solid #3d444c; border-radius:22px; box-shadow:var(--neo-panel); }
-  .subject-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 4px; }
-  .subject-panel-heading > div { min-width:0; }
+  /* Titre et commandes sur une ligne ; si le panneau est étroit, les commandes passent dessous,
+     alignées à droite, sans jamais rétrécir ni déborder sur la feuille. */
+  .subject-panel-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 8px; padding:0 4px; }
+  .subject-panel-heading > div:first-child { flex:1 1 140px; min-width:0; }
+  .subject-panel-heading .eyebrow { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .subject-panel-heading h2 { margin:2px 0 0; overflow:hidden; font-size:13px; font-weight:650; text-overflow:ellipsis; white-space:nowrap; }
-  .subject-zoom { display:flex; align-items:center; gap:4px; }
+  .subject-zoom { flex:none; display:flex; align-items:center; gap:3px; margin-left:auto; }
+  .subject-zoom .tool { width:32px; height:32px; font-size:17px; }
+  .subject-zoom .tool > svg { width:16px; height:16px; }
   .subject-zoom-level { min-width:48px; min-height:28px; padding:0 4px; color:#c1c9d3; font-size:11px; text-align:center; font-variant-numeric:tabular-nums; background:none; border:0; border-radius:8px; }
   button.subject-zoom-level:hover { color:#ffbd94; background:#22262b; }
   .subject-page-indicator { color:#aeb7c3; letter-spacing:.4px; font-variant-numeric:tabular-nums; }
