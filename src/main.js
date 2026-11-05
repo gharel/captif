@@ -37,6 +37,7 @@ import './neumorphism.css';
 import './subject.css';
 import { createSubjectStore, subjectReference, SUBJECT_CHANNEL } from './subject.js';
 import { createSubjectViewer } from './subject-viewer.js';
+import { subjectWidthBounds, clampSubjectWidth } from './subject-layout.js';
 import { readPreferences,writePreferences,toolShortcut,TOOL_KEYS } from './workspace-preferences.js';
 
 const loaded = loadCopy();
@@ -55,6 +56,7 @@ let fontSize = 18;
 let zoom = 85;
 let fitZoom = true;
 const visualPreferences=readPreferences();
+let subjectWidth=visualPreferences.subjectWidth??null;
 let activeFamily=visualPreferences.family||DEFAULT_FAMILY;
 let grid = visualPreferences.grid??true;
 let gesture = null;
@@ -143,7 +145,7 @@ app.innerHTML = `
       <button id="remove-page" class="text-button danger">Supprimer cette feuille</button>
       <div class="sidebar-bottom"><div id="save-state" role="status">● Sauvegarde sur cet appareil</div><div class="flex gap-3 mt-3"><button id="export" class="text-button">Exporter .json</button><button id="import" class="text-button">Importer</button></div><button id="new-copy" class="text-button mt-3">Nouvelle copie</button><button id="settings-button" class="settings-button" type="button" aria-expanded="false" aria-controls="settings-popover">${icon('settings')} Paramètres</button></div>
     </aside>
-    <aside id="subject-panel" class="subject-panel" aria-labelledby="subject-panel-title"><div class="subject-panel-heading"><div><span class="eyebrow">SUJET</span><h2 id="subject-panel-title">Sujet</h2></div><div class="subject-zoom"><button id="subject-zoom-out" class="tool" type="button" aria-label="Réduire le sujet">−</button><output id="subject-zoom-level">100 %</output><button id="subject-zoom-in" class="tool" type="button" aria-label="Agrandir le sujet">＋</button><button id="subject-close" class="tool" type="button" aria-label="Masquer le sujet">${icon('close')}</button></div></div><div id="subject-scroll" class="subject-scroll" tabindex="0" aria-label="Pages du sujet"></div></aside>
+    <aside id="subject-panel" class="subject-panel" aria-labelledby="subject-panel-title"><div class="subject-panel-heading"><div><span class="eyebrow">SUJET<span id="subject-page-indicator" class="subject-page-indicator"></span></span><h2 id="subject-panel-title">Sujet</h2></div><div class="subject-zoom"><button id="subject-zoom-out" class="tool" type="button" aria-label="Réduire le sujet">−</button><button id="subject-zoom-level" class="subject-zoom-level" type="button" title="Ajuster à la largeur du panneau (Ctrl + molette pour zoomer)" aria-label="Zoom 100 %, ajuster à la largeur">100 %</button><button id="subject-zoom-in" class="tool" type="button" aria-label="Agrandir le sujet">＋</button><button id="subject-close" class="tool" type="button" aria-label="Masquer le sujet">${icon('close')}</button></div></div><div id="subject-scroll" class="subject-scroll" tabindex="0" aria-label="Pages du sujet"></div><div id="subject-resizer" class="subject-resizer" role="separator" aria-orientation="vertical" aria-controls="subject-panel" aria-label="Largeur du sujet" title="Glisser pour élargir ou réduire le sujet · double-clic : largeur par défaut" tabindex="0"></div></aside>
     <main class="desk">
       <h1 class="sr-only">Votre atelier</h1>
       <div class="desk-controls">
@@ -319,7 +321,7 @@ library.addEventListener('keydown',event=>{
 document.querySelector('.workspace').classList.toggle('pages-collapsed',!(visualPreferences.pages??innerWidth>=1000));
 document.querySelector('.workspace').classList.toggle('library-collapsed',!(visualPreferences.library??innerWidth>=760));
 document.querySelector('#grid').checked=grid;
-function saveVisualPreferences(){writePreferences({family:activeFamily,pages:!document.querySelector('.workspace').classList.contains('pages-collapsed'),library:!document.querySelector('.workspace').classList.contains('library-collapsed'),grid});}
+function saveVisualPreferences(){writePreferences({family:activeFamily,pages:!document.querySelector('.workspace').classList.contains('pages-collapsed'),library:!document.querySelector('.workspace').classList.contains('library-collapsed'),grid,subjectWidth:subjectWidth??undefined});}
 for(const [id,className,name] of [['toggle-pages','pages-collapsed','la colonne des feuilles'],['toggle-library','library-collapsed','la bibliothèque']]){
   const collapsed=document.querySelector('.workspace').classList.contains(className);
   document.querySelector(`#${id}`).setAttribute('aria-expanded',String(!collapsed));
@@ -1173,7 +1175,11 @@ document.querySelector('#new-copy').onclick = async () => {
 
 // Sujet déposé par l'enseignant : lisible à partir du démarrage, jamais modifiable ici.
 const subjectStore=createSubjectStore();
-const subjectViewer=createSubjectViewer(document.querySelector('#subject-scroll'),{onError:message=>toast(message,true),onZoom:level=>{document.querySelector('#subject-zoom-level').textContent=`${Math.round(level*100)} %`;}});
+const subjectViewer=createSubjectViewer(document.querySelector('#subject-scroll'),{
+  onError:message=>toast(message,true),
+  onZoom:level=>{const button=document.querySelector('#subject-zoom-level'),percent=Math.round(level*100);button.textContent=`${percent} %`;button.setAttribute('aria-label',`Zoom ${percent} %, ajuster à la largeur`);},
+  onPage:(current,total)=>setText('#subject-page-indicator',total?` · PAGE ${current} / ${total}`:''),
+});
 function withSubject(copy,subject){const {subject:_previous,...rest}=copy;return subject?{...rest,subject}:rest;}
 function recordSubject(){history={...history,present:withSubject(doc(),subjectState.subject&&subjectReference(subjectState.subject))};persist();}
 const subjectVisible=()=>Boolean(subjectState.subject)&&monitor.snapshot().status!=='idle';
@@ -1181,6 +1187,7 @@ function setSubjectOpen(open){
   open=open&&subjectVisible();
   document.querySelector('.workspace').classList.toggle('subject-open',open);
   document.querySelector('#toggle-subject').setAttribute('aria-expanded',String(open));
+  if(open)applySubjectWidth();
   if(open){document.querySelector('#subject-panel-title').textContent=subjectState.subject.name;subjectViewer.show(subjectState.subject);}
 }
 function syncSubject(){
@@ -1208,6 +1215,43 @@ document.querySelector('#toggle-subject').onclick=()=>setSubjectOpen(!document.q
 document.querySelector('#subject-close').onclick=()=>{setSubjectOpen(false);document.querySelector('#toggle-subject').focus();};
 document.querySelector('#subject-zoom-out').onclick=()=>subjectViewer.zoom(-1);
 document.querySelector('#subject-zoom-in').onclick=()=>subjectViewer.zoom(1);
+document.querySelector('#subject-zoom-level').onclick=()=>subjectViewer.fit();
+let subjectWheelAt=0;
+document.querySelector('#subject-scroll').addEventListener('wheel',event=>{
+  if(!event.ctrlKey&&!event.metaKey)return;
+  event.preventDefault();
+  if(event.timeStamp-subjectWheelAt<180)return;
+  subjectWheelAt=event.timeStamp;subjectViewer.zoom(event.deltaY<0?1:-1);
+},{passive:false});
+// Largeur du panneau : glisser la poignée, flèches au clavier, double-clic pour la largeur par défaut.
+const subjectResizer=document.querySelector('#subject-resizer');
+const workspaceTracks=()=>getComputedStyle(document.querySelector('.workspace')).gridTemplateColumns.split(' ').map(parseFloat);
+function subjectBounds(){const [pages=0,,,library=0]=workspaceTracks();return subjectWidthBounds({workspace:document.querySelector('.workspace').clientWidth,pages,library});}
+function applySubjectWidth(){
+  const workspace=document.querySelector('.workspace'),bounds=subjectBounds();
+  if(subjectWidth==null)workspace.style.removeProperty('--subject-custom-width');
+  else workspace.style.setProperty('--subject-custom-width',`${clampSubjectWidth(subjectWidth,bounds)}px`);
+  subjectResizer.setAttribute('aria-valuemin',String(bounds.min));subjectResizer.setAttribute('aria-valuemax',String(bounds.max));
+  subjectResizer.setAttribute('aria-valuenow',String(Math.round(workspaceTracks()[1]||bounds.min)));
+}
+function resizeSubjectTo(width){subjectWidth=clampSubjectWidth(width,subjectBounds());applySubjectWidth();}
+subjectResizer.addEventListener('pointerdown',event=>{
+  if(event.button!==0)return;
+  event.preventDefault();
+  const startX=event.clientX,startWidth=workspaceTracks()[1];
+  subjectResizer.setPointerCapture(event.pointerId);subjectResizer.classList.add('dragging');document.body.classList.add('resizing-subject');
+  const move=moveEvent=>resizeSubjectTo(startWidth+moveEvent.clientX-startX);
+  const end=()=>{subjectResizer.removeEventListener('pointermove',move);subjectResizer.removeEventListener('pointerup',end);subjectResizer.removeEventListener('pointercancel',end);subjectResizer.classList.remove('dragging');document.body.classList.remove('resizing-subject');saveVisualPreferences();};
+  subjectResizer.addEventListener('pointermove',move);subjectResizer.addEventListener('pointerup',end);subjectResizer.addEventListener('pointercancel',end);
+});
+subjectResizer.addEventListener('keydown',event=>{
+  const step=event.shiftKey?80:20,bounds=subjectBounds(),current=workspaceTracks()[1];
+  const next={ArrowLeft:current-step,ArrowRight:current+step,Home:bounds.min,End:bounds.max}[event.key];
+  if(next===undefined)return;
+  event.preventDefault();event.stopPropagation();resizeSubjectTo(next);saveVisualPreferences();
+});
+subjectResizer.addEventListener('dblclick',()=>{subjectWidth=null;applySubjectWidth();saveVisualPreferences();});
+window.addEventListener('resize',()=>{if(document.querySelector('.workspace').classList.contains('subject-open'))applySubjectWidth();});
 try{new BroadcastChannel(SUBJECT_CHANNEL).onmessage=()=>refreshSubject();}catch{/* Le sujet sera relu au prochain chargement. */}
 refreshSubject();
 

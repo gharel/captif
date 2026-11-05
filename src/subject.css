@@ -2,21 +2,23 @@
   /* Copie : panneau du sujet entre la colonne des feuilles et la feuille. Préfixe #app : ce
      fichier est partagé avec l'espace enseignant et peut être chargé avant atelier.css. */
   #app .workspace { --subject-width:0px; grid-template-columns:var(--pages-width) var(--subject-width) minmax(0,1fr) var(--library-width); }
-  #app .workspace.subject-open { --subject-width:clamp(300px,32vw,560px); }
+  #app .workspace.subject-open { --subject-width:var(--subject-custom-width,clamp(300px,32vw,560px)); }
   #app .left-sidebar { grid-column:1; }
   #app .subject-panel { grid-column:2; grid-row:1; display:none; }
   #app .subject-open .subject-panel { display:flex; }
   #app .desk { grid-column:3; }
   #app .right-sidebar { grid-column:4; }
-  .subject-panel { flex-direction:column; min-width:0; min-height:0; margin:14px 0 14px 8px; padding:14px 10px 10px; gap:10px; color:#e6ebf1; background:linear-gradient(145deg,#30353a,#272c31); border:1px solid #3d444c; border-radius:22px; box-shadow:var(--neo-panel); }
+  .subject-panel { position:relative; flex-direction:column; min-width:0; min-height:0; margin:14px 0 14px 8px; padding:14px 10px 10px; gap:10px; color:#e6ebf1; background:linear-gradient(145deg,#30353a,#272c31); border:1px solid #3d444c; border-radius:22px; box-shadow:var(--neo-panel); }
   .subject-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 4px; }
   .subject-panel-heading > div { min-width:0; }
   .subject-panel-heading h2 { margin:2px 0 0; overflow:hidden; font-size:13px; font-weight:650; text-overflow:ellipsis; white-space:nowrap; }
   .subject-zoom { display:flex; align-items:center; gap:4px; }
-  .subject-zoom output { min-width:44px; color:#c1c9d3; font-size:11px; text-align:center; font-variant-numeric:tabular-nums; }
-  .subject-scroll { flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column; align-items:center; gap:12px; padding:12px; background:#24282c; border-radius:14px; box-shadow:var(--neo-inset); scrollbar-width:thin; scrollbar-color:#565f6b transparent; }
+  .subject-zoom-level { min-width:48px; min-height:28px; padding:0 4px; color:#c1c9d3; font-size:11px; text-align:center; font-variant-numeric:tabular-nums; background:none; border:0; border-radius:8px; }
+  button.subject-zoom-level:hover { color:#ffbd94; background:#22262b; }
+  .subject-page-indicator { color:#aeb7c3; letter-spacing:.4px; font-variant-numeric:tabular-nums; }
+  .subject-scroll { flex:1; min-height:0; position:relative; overflow:auto; scrollbar-gutter:stable; display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:12px; background:#24282c; border-radius:14px; box-shadow:var(--neo-inset); scrollbar-width:thin; scrollbar-color:#565f6b transparent; }
   .subject-scroll:focus-visible { outline:2px solid #ffb582; outline-offset:2px; }
-  .subject-page { flex:none; display:grid; place-items:center; color:#4b5563; font-size:12px; background:#fff; border-radius:2px; box-shadow:0 2px 10px #0006; }
+  .subject-page { flex:none; margin-inline:auto; display:grid; place-items:center; color:#4b5563; font-size:12px; background:#fff; border-radius:2px; box-shadow:0 2px 10px #0006; }
   .subject-page canvas { display:block; }
   .subject-notice { margin:10px 0 0; padding:9px 10px; color:#c1c9d3; font-size:11px; line-height:1.45; background:#24282c; border:1px solid #3d444c; border-radius:10px; box-shadow:var(--neo-inset); overflow-wrap:anywhere; }
   .subject-notice strong { color:#edf0f4; font-weight:650; }
@@ -29,8 +31,15 @@
   .canvas-breadcrumb .subject-toggle svg { width:14px; height:14px; }
   .canvas-breadcrumb .subject-toggle[hidden] { display:none; }
   .canvas-breadcrumb .subject-toggle[aria-expanded="true"] { color:#211b16; background:linear-gradient(145deg,#ff964d,#f06a23); border-color:#ffad6b; }
-  @media (max-width:900px) { #app .workspace.subject-open { --subject-width:minmax(260px,42vw); } }
-  @media (max-width:660px) { #app .subject-panel { order:2; min-height:70dvh; margin:8px; } }
+  @media (max-width:900px) { #app .workspace.subject-open { --subject-width:var(--subject-custom-width,minmax(260px,42vw)); } }
+  /* Poignée de largeur : glisser, flèches gauche/droite, double-clic pour revenir à la largeur par défaut. */
+  .subject-resizer { position:absolute; top:24px; bottom:24px; right:-13px; z-index:3; width:14px; cursor:col-resize; touch-action:none; border-radius:7px; }
+  .subject-resizer::after { content:""; position:absolute; top:50%; left:5px; width:4px; height:44px; margin-top:-22px; border-radius:2px; background:#565f6b; transition:background .15s,height .15s,margin-top .15s; }
+  .subject-resizer:hover::after,.subject-resizer:focus-visible::after,.subject-resizer.dragging::after { height:72px; margin-top:-36px; background:#ff9557; }
+  .subject-resizer:focus-visible { outline:none; }
+  .subject-resizer:focus-visible::after { box-shadow:0 0 0 2px #ffb582; }
+  .resizing-subject,.resizing-subject * { cursor:col-resize !important; user-select:none; }
+  @media (max-width:660px) { #app .subject-panel { order:2; min-height:70dvh; margin:8px; } .subject-resizer { display:none; } }
 
   /* Espace enseignant. */
   .teacher-page { min-height:100dvh; }

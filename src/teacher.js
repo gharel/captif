@@ -21,7 +21,7 @@ root.innerHTML = `
       <p class="teacher-limits">Le sujet reste dans ce navigateur : déposez-le sur chaque poste. Effacer les données du site l'efface aussi. PDF de 20 Mo au plus.</p>
     </section>
     <section class="teacher-preview" aria-label="Aperçu du sujet">
-      <div class="subject-panel"><div class="subject-panel-heading"><div><span class="eyebrow">APERÇU</span><h2 id="preview-title">Aucun sujet</h2></div><div class="subject-zoom"><button id="zoom-out" class="tool" type="button" aria-label="Réduire l'aperçu">−</button><output id="zoom-level">100 %</output><button id="zoom-in" class="tool" type="button" aria-label="Agrandir l'aperçu">＋</button></div></div><div id="preview" class="subject-scroll" tabindex="0" aria-label="Pages du sujet"></div></div>
+      <div class="subject-panel"><div class="subject-panel-heading"><div><span class="eyebrow">APERÇU</span><h2 id="preview-title">Aucun sujet</h2></div><div class="subject-zoom"><button id="zoom-out" class="tool" type="button" aria-label="Réduire l'aperçu">−</button><button id="zoom-level" class="subject-zoom-level" type="button" title="Ajuster à la largeur de l'aperçu" aria-label="Zoom 100 %, ajuster à la largeur">100 %</button><button id="zoom-in" class="tool" type="button" aria-label="Agrandir l'aperçu">＋</button></div></div><div id="preview" class="subject-scroll" tabindex="0" aria-label="Pages du sujet"></div></div>
     </section>
   </main>
   <input id="pdf-input" type="file" accept="application/pdf,.pdf" hidden />
@@ -83,6 +83,7 @@ $('#remove').onclick = async () => {
 };
 $('#zoom-out').onclick = () => viewer.zoom(-1);
 $('#zoom-in').onclick = () => viewer.zoom(1);
+$('#zoom-level').onclick = () => viewer.fit();
 $('#lock').onclick = () => location.reload();
 
 await requireTeacherAccess(document.body);
